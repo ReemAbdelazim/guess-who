@@ -12,7 +12,7 @@
   const used = () => Object.keys(state.asked).length;
 
   async function load() {
-    const r = await fetch('/api/data', { cache: 'no-store' });
+    const r = await fetch('data/data.json?v=' + Date.now(), { cache: 'no-store' });
     data = await r.json();
     $('#title').textContent = data.settings.title || 'Guess Who?';
     $('#edition').textContent = data.settings.edition || '';

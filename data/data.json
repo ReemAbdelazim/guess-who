@@ -10,7 +10,7 @@
       "id": "jane-goodall",
       "name": "Jane Goodall",
       "position": "Primatologist & Conservationist",
-      "image": "/uploads/jane-goodall-24df78.jpg",
+      "image": "uploads/jane-goodall-24df78.jpg",
       "imageY": 20,
       "source": "https://en.wikipedia.org/wiki/Jane_Goodall"
     },
@@ -18,7 +18,7 @@
       "id": "anthony-fauci",
       "name": "Anthony Fauci",
       "position": "Physician-Scientist",
-      "image": "/uploads/anthony-fauci-f2979c.jpg",
+      "image": "uploads/anthony-fauci-f2979c.jpg",
       "imageY": 20,
       "source": "https://en.wikipedia.org/wiki/Anthony_Fauci"
     },
@@ -26,7 +26,7 @@
       "id": "malala",
       "name": "Malala Yousafzai",
       "position": "Education Activist",
-      "image": "/uploads/malala-411dcc.jpg",
+      "image": "uploads/malala-411dcc.jpg",
       "imageY": 20,
       "source": "https://en.wikipedia.org/wiki/Malala_Yousafzai"
     },
@@ -34,7 +34,7 @@
       "id": "mlk",
       "name": "Martin Luther King Jr.",
       "position": "Civil Rights Leader",
-      "image": "/uploads/mlk-fceb21.jpg",
+      "image": "uploads/mlk-fceb21.jpg",
       "imageY": 20,
       "source": "https://en.wikipedia.org/wiki/Martin_Luther_King_Jr."
     },
@@ -42,7 +42,7 @@
       "id": "marie-curie",
       "name": "Marie Curie",
       "position": "Physicist & Chemist",
-      "image": "/uploads/marie-curie-4d20c7.jpg",
+      "image": "uploads/marie-curie-4d20c7.jpg",
       "imageY": 20,
       "source": "https://en.wikipedia.org/wiki/Marie_Curie"
     },
@@ -50,7 +50,7 @@
       "id": "muhammad-ali",
       "name": "Muhammad Ali",
       "position": "Professional Boxer",
-      "image": "/uploads/muhammad-ali-3c3526.jpg",
+      "image": "uploads/muhammad-ali-3c3526.jpg",
       "imageY": 20,
       "source": "https://en.wikipedia.org/wiki/Muhammad_Ali"
     },
@@ -58,7 +58,7 @@
       "id": "steve-jobs",
       "name": "Steve Jobs",
       "position": "Technology Entrepreneur",
-      "image": "/uploads/steve-jobs-ec112f.jpg",
+      "image": "uploads/steve-jobs-ec112f.jpg",
       "imageY": 20,
       "source": "https://en.wikipedia.org/wiki/Steve_Jobs"
     },
@@ -66,7 +66,7 @@
       "id": "greta",
       "name": "Greta Thunberg",
       "position": "Climate Activist",
-      "image": "/uploads/greta-3da223.jpg",
+      "image": "uploads/greta-3da223.jpg",
       "imageY": 20,
       "source": "https://en.wikipedia.org/wiki/Greta_Thunberg"
     },
@@ -74,7 +74,7 @@
       "id": "einstein",
       "name": "Albert Einstein",
       "position": "Theoretical Physicist",
-      "image": "/uploads/einstein-8270a4.jpg",
+      "image": "uploads/einstein-8270a4.jpg",
       "imageY": 20,
       "source": "https://en.wikipedia.org/wiki/Albert_Einstein"
     },
@@ -82,7 +82,7 @@
       "id": "gordon-ramsay",
       "name": "Gordon Ramsay",
       "position": "Chef & Restaurateur",
-      "image": "/uploads/gordon-ramsay-9760f6.jpg",
+      "image": "uploads/gordon-ramsay-9760f6.jpg",
       "imageY": 20,
       "source": "https://en.wikipedia.org/wiki/Gordon_Ramsay"
     },
@@ -90,7 +90,7 @@
       "id": "attenborough",
       "name": "David Attenborough",
       "position": "Natural Historian & Broadcaster",
-      "image": "/uploads/attenborough-92dcd9.jpg",
+      "image": "uploads/attenborough-92dcd9.jpg",
       "imageY": 20,
       "source": "https://en.wikipedia.org/wiki/David_Attenborough"
     },
@@ -98,7 +98,7 @@
       "id": "sundar-pichai",
       "name": "Sundar Pichai",
       "position": "Technology Executive",
-      "image": "/uploads/sundar-pichai-4e17cb.jpg",
+      "image": "uploads/sundar-pichai-4e17cb.jpg",
       "imageY": 20,
       "source": "https://en.wikipedia.org/wiki/Sundar_Pichai"
     },
@@ -106,7 +106,7 @@
       "id": "bill-gates",
       "name": "Bill Gates",
       "position": "Entrepreneur & Philanthropist",
-      "image": "/uploads/bill-gates-184b90.jpg",
+      "image": "uploads/bill-gates-184b90.jpg",
       "imageY": 20,
       "source": "https://en.wikipedia.org/wiki/Bill_Gates"
     },
@@ -114,7 +114,7 @@
       "id": "zohran-mamdani",
       "name": "Zohran Mamdani",
       "position": "Politician",
-      "image": "/uploads/zohran-mamdani-28532f.jpg",
+      "image": "uploads/zohran-mamdani-28532f.jpg",
       "imageY": 20,
       "source": "https://en.wikipedia.org/wiki/Zohran_Mamdani"
     },
@@ -122,7 +122,7 @@
       "id": "omar-suleiman",
       "name": "Omar Suleiman",
       "position": "Islamic Scholar & Imam",
-      "image": "/uploads/omar-suleiman-c6f6d3.jpg",
+      "image": "uploads/omar-suleiman-c6f6d3.jpg",
       "imageY": 20,
       "source": "https://en.wikipedia.org/wiki/Omar_Suleiman_(imam)"
     },
@@ -130,7 +130,7 @@
       "id": "tim-cook",
       "name": "Tim Cook",
       "position": "Business Executive",
-      "image": "/uploads/tim-cook-518711.jpg",
+      "image": "uploads/tim-cook-518711.jpg",
       "imageY": 20,
       "source": "https://en.wikipedia.org/wiki/Tim_Cook"
     },
@@ -138,7 +138,7 @@
       "id": "salahuddin",
       "name": "Salahuddin al-Ayyubi",
       "position": "Sultan & Military Leader",
-      "image": "/uploads/salahuddin-225359.jpg",
+      "image": "uploads/salahuddin-225359.jpg",
       "imageY": 20,
       "source": "https://en.wikipedia.org/wiki/Saladin"
     },
@@ -146,7 +146,7 @@
       "id": "al-khwarizmi",
       "name": "Al-Khwarizmi",
       "position": "Mathematician & Astronomer",
-      "image": "/uploads/al-khwarizmi-a2356b.jpg",
+      "image": "uploads/al-khwarizmi-a2356b.jpg",
       "imageY": 20,
       "source": "https://en.wikipedia.org/wiki/Al-Khwarizmi"
     }

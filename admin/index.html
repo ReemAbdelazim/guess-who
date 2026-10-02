@@ -5,11 +5,11 @@
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <meta name="robots" content="noindex">
 <title>Admin · Guess Who · Seeds Congress 2026</title>
-<link rel="icon" href="/assets/logo-stacked-white.webp">
+<link rel="icon" href="../assets/logo-stacked-white.webp">
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link href="https://fonts.googleapis.com/css2?family=Montserrat:wght@500;600;700;800&display=swap" rel="stylesheet">
-<link rel="stylesheet" href="/brand.css">
+<link rel="stylesheet" href="../brand.css">
 <style>
   body { min-height: 100vh; }
   .hidden { display: none !important; }
@@ -17,9 +17,13 @@
   /* login */
   #login { min-height: 100vh; display: grid; place-items: center; padding: 24px; position: relative; overflow: hidden; }
   #login .rings { position: absolute; width: 560px; right: -220px; top: -220px; opacity: .14; pointer-events: none; }
-  .login-card { width: min(380px, 100%); background: var(--navy); border: 1px solid var(--line); border-radius: 18px; padding: 30px; position: relative; }
+  .login-card { width: min(420px, 100%); background: var(--navy); border: 1px solid var(--line); border-radius: 18px; padding: 30px; position: relative; }
   .login-card img { height: 52px; margin-bottom: 22px; }
   .login-card h1 { font-size: 22px; margin: 6px 0 18px; font-weight: 800; }
+  .help { margin-top: 18px; font-size: 12.5px; color: var(--muted); line-height: 1.55; }
+  .help summary { cursor: pointer; color: var(--mint); font-weight: 600; }
+  .help ol { padding-left: 18px; margin: 10px 0 0; }
+  .help a, .help b { color: var(--white); }
   .err { color: var(--danger); font-size: 13px; min-height: 18px; margin: 8px 0 0; }
 
   /* fields */
@@ -101,21 +105,32 @@
 <body>
 
 <section id="login">
-  <img class="rings" src="/assets/rings.png" alt="">
+  <img class="rings" src="../assets/rings.png" alt="">
   <form class="login-card" id="loginForm">
-    <img src="/assets/logo-horizontal-white.webp" alt="Seeds Congress">
+    <img src="../assets/logo-horizontal-white.webp" alt="Seeds Congress">
     <div class="eyebrow">Guess Who · Admin</div>
-    <h1>Sign in to manage the game</h1>
-    <label class="f" for="pw">Password</label>
-    <input class="input" id="pw" type="password" autocomplete="current-password" required>
+    <h1>Sign in with your GitHub token</h1>
+    <p class="note" style="margin:0 0 16px">Saving commits your changes to the <b id="repoName">guess-who</b> repository. The game updates about a minute after each save.</p>
+    <label class="f" for="pw">GitHub token</label>
+    <input class="input" id="pw" type="password" autocomplete="off" spellcheck="false" required placeholder="github_pat_…">
+    <label class="toggle" style="margin-top:12px;font-size:13px"><input type="checkbox" id="remember"> Remember on this device</label>
     <p class="err" id="loginErr"></p>
     <button class="btn btn-primary" style="width:100%;margin-top:8px">Sign in</button>
+    <details class="help">
+      <summary>How do I get a token?</summary>
+      <ol>
+        <li>Open <a href="https://github.com/settings/personal-access-tokens/new" target="_blank" rel="noopener">github.com/settings/personal-access-tokens/new</a>.</li>
+        <li>Under <b>Repository access</b>, choose <b>Only select repositories</b> and pick <b id="repoName2">guess-who</b>.</li>
+        <li>Under <b>Permissions → Repository permissions</b>, set <b>Contents</b> to <b>Read and write</b>.</li>
+        <li>Generate the token and paste it above. Keep it private: anyone with it can edit the game.</li>
+      </ol>
+    </details>
   </form>
 </section>
 
 <section id="app" class="hidden">
   <header>
-    <img class="logo" src="/assets/logo-horizontal-white.webp" alt="Seeds Congress">
+    <img class="logo" src="../assets/logo-horizontal-white.webp" alt="Seeds Congress">
     <div class="divider"></div>
     <div><div class="eyebrow">Admin</div><h1>Guess Who</h1></div>
     <nav>
@@ -125,7 +140,8 @@
     </nav>
     <div class="right">
       <span id="dirty"></span>
-      <a class="btn btn-ghost" href="/" target="_blank" rel="noopener">Open game</a>
+      <a class="btn btn-ghost" href="../" target="_blank" rel="noopener">Open game</a>
+      <button class="btn btn-ghost" id="signout">Sign out</button>
       <button class="btn btn-primary" id="save">Save changes</button>
     </div>
   </header>
@@ -133,7 +149,7 @@
   <div class="wrap">
     <div data-panel="people">
       <div class="bar">
-        <div><h2>People</h2><p>Name, position and photo shown on each card. “Get from Wikipedia” pulls the main photo from that person’s Wikipedia page. You can also paste an image link, or upload a file.</p></div>
+        <div><h2>People</h2><p>Name, position and photo shown on each card. “Get from Wikipedia” pulls the main photo from that person’s Wikipedia page. You can also upload a file.</p></div>
         <button class="btn btn-primary" id="addPerson">Add person</button>
       </div>
       <div id="people"></div>
@@ -164,6 +180,6 @@
 
 <input type="file" id="file" accept="image/*" class="hidden">
 <div id="toast"></div>
-<script src="/admin.js"></script>
+<script src="admin.js"></script>
 </body>
 </html>

@@ -1,23 +1,9 @@
 # Guess Who? · Seeds Congress 2026
 
-- **`/`** is the game. Players see only the game. It has no links to admin and no manage buttons.
-- **`/admin`** is the password-protected editor for people, photos, positions, questions and settings.
+- **Game:** https://reemabdelazim.github.io/guess-who/
+- **Admin:** https://reemabdelazim.github.io/guess-who/admin/
 
-## Run it
-
-Needs Node 18 or newer. There is nothing to install.
-
-```bash
-node server.js
-```
-
-Open http://localhost:3000 for the game and http://localhost:3000/admin for the editor.
-
-Set the admin password with `ADMIN_PASSWORD`. If you don't set it, the server makes a random password each time it starts and prints it in the terminal.
-
-```bash
-ADMIN_PASSWORD="something-secret" PORT=8080 node server.js
-```
+The game has no admin buttons or links. Only `/admin` can change people, photos, positions, questions and settings.
 
 ## How the game works
 
@@ -25,19 +11,29 @@ The game secretly picks one person. Players click questions in the side panel an
 
 ## Admin
 
-- **People:** name, position (the line under the name), and photo. *Get from Wikipedia* takes a name or a Wikipedia link and downloads that page's main photo. If you paste a direct image link instead, it downloads that image. *Upload file* works for your own photos. The *Photo position* slider moves the crop up or down so faces stay in frame.
-- **Questions:** edit the wording, then tick everyone whose answer is YES. Everyone else answers NO.
+The site is hosted on GitHub Pages, which can't run a server. The admin page saves by committing straight to this repository, so you sign in with a GitHub token.
+
+**Getting a token (one time):**
+
+1. Open https://github.com/settings/personal-access-tokens/new
+2. Under **Repository access**, choose **Only select repositories** and pick `guess-who`.
+3. Under **Repository permissions**, set **Contents** to **Read and write**.
+4. Generate the token and paste it on the admin sign-in screen. Keep it private, because anyone with it can edit the game.
+
+**Editing:**
+
+- **People:** name, position (the line under the name), and photo. *Get from Wikipedia* takes a name or a Wikipedia link and pulls that page's main photo. *Upload file* uses your own photo. Photos are resized to 800px and saved in `uploads/`. The *Photo position* slider moves the crop up or down so faces stay in frame.
+- **Questions:** edit the wording, then click everyone whose answer is YES. Everyone else answers NO.
 - **Settings:** title, edition label, questions per round, and auto rule-out.
-- Click **Save changes**. The game picks up your changes the next time it loads.
+- Click **Save changes**. GitHub Pages republishes the site, and the game shows the update about a minute later.
 
 ## Files
 
+- `index.html`, `game.js`, `brand.css`, `assets/`: the game and the Seeds Congress branding.
+- `admin/`: the admin page.
 - `data/data.json`: all people, questions and settings.
-- `uploads/`: the downloaded and uploaded photos.
-- `seed.js`: rebuilds the starter list of 18 people from Wikipedia. It overwrites `data/data.json`.
+- `uploads/`: the photos.
 
-## Hosting
-
-Use any host that runs Node and keeps files on disk, such as a VPS, Render with a persistent disk, Railway with a volume, or Fly.io with a volume. If the host wipes the disk on each deploy, back up `data/` and `uploads/` first, or admin edits will be lost.
+To preview locally, run a static server in this folder (for example `python -m http.server`) and open http://localhost:8000.
 
 Photos come from Wikimedia Commons, and each person's source page is stored in `data.json`. Most of these images are CC-licensed and need credit if you republish them outside the game.
