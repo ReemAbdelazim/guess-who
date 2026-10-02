@@ -1,0 +1,44 @@
+/* Seeds Congress 2026 brand tokens (from the Congress 2026 Design Package) */
+:root {
+  --ink: #061824;        /* page background */
+  --navy: #0B2D44;       /* surfaces */
+  --navy-2: #0f3a57;     /* raised surfaces / hover */
+  --green: #4FB06D;      /* primary action */
+  --mint: #8AD09B;       /* accent text */
+  --white: #FFFFFF;
+  --muted: rgba(255, 255, 255, .62);
+  --line: rgba(138, 208, 155, .16);
+  --line-strong: rgba(138, 208, 155, .38);
+  --danger: #e2735f;
+  --radius: 12px;
+  --font: 'Montserrat', system-ui, -apple-system, 'Segoe UI', sans-serif;
+}
+
+* { box-sizing: border-box; }
+html, body { margin: 0; }
+body {
+  font-family: var(--font);
+  background: var(--ink);
+  color: var(--white);
+  -webkit-font-smoothing: antialiased;
+}
+
+button { font-family: inherit; cursor: pointer; }
+input, textarea, select { font-family: inherit; }
+
+.btn {
+  display: inline-flex; align-items: center; justify-content: center; gap: 8px;
+  border: 1px solid transparent; border-radius: 999px; white-space: nowrap;
+  padding: 10px 20px; font-weight: 700; font-size: 13px; letter-spacing: .04em; text-transform: uppercase;
+  transition: background .15s, border-color .15s, color .15s, transform .1s;
+}
+.btn:active { transform: translateY(1px); }
+.btn-primary { background: var(--green); color: var(--ink); }
+.btn-primary:hover { background: var(--mint); }
+.btn-ghost { background: transparent; color: var(--white); border-color: var(--line-strong); }
+.btn-ghost:hover { border-color: var(--mint); color: var(--mint); }
+.btn:disabled { opacity: .4; cursor: not-allowed; }
+
+.eyebrow { font-size: 11px; font-weight: 700; letter-spacing: .14em; text-transform: uppercase; color: var(--mint); }
+
+:focus-visible { outline: 2px solid var(--mint); outline-offset: 2px; }

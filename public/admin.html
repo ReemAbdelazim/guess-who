@@ -1,0 +1,169 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<meta name="robots" content="noindex">
+<title>Admin · Guess Who · Seeds Congress 2026</title>
+<link rel="icon" href="/assets/logo-stacked-white.webp">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Montserrat:wght@500;600;700;800&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="/brand.css">
+<style>
+  body { min-height: 100vh; }
+  .hidden { display: none !important; }
+
+  /* login */
+  #login { min-height: 100vh; display: grid; place-items: center; padding: 24px; position: relative; overflow: hidden; }
+  #login .rings { position: absolute; width: 560px; right: -220px; top: -220px; opacity: .14; pointer-events: none; }
+  .login-card { width: min(380px, 100%); background: var(--navy); border: 1px solid var(--line); border-radius: 18px; padding: 30px; position: relative; }
+  .login-card img { height: 52px; margin-bottom: 22px; }
+  .login-card h1 { font-size: 22px; margin: 6px 0 18px; font-weight: 800; }
+  .err { color: var(--danger); font-size: 13px; min-height: 18px; margin: 8px 0 0; }
+
+  /* fields */
+  label.f { display: block; font-size: 11px; font-weight: 700; letter-spacing: .1em; text-transform: uppercase; color: var(--muted); margin-bottom: 6px; }
+  .input {
+    width: 100%; background: var(--ink); color: var(--white); border: 1px solid var(--line-strong); border-radius: 10px;
+    padding: 10px 12px; font-size: 14px; font-weight: 500;
+  }
+  .input:focus { outline: none; border-color: var(--green); box-shadow: 0 0 0 3px rgba(79,176,109,.2); }
+  .input.sm { padding: 7px 10px; font-size: 13px; }
+
+  /* app shell */
+  header {
+    position: sticky; top: 0; z-index: 5; display: flex; align-items: center; gap: 18px;
+    padding: 12px 28px; background: rgba(6,24,36,.94); backdrop-filter: blur(6px); border-bottom: 1px solid var(--line);
+  }
+  header .logo { height: 34px; }
+  header .divider { width: 1px; align-self: stretch; background: var(--line-strong); }
+  header h1 { margin: 0; font-size: 18px; font-weight: 800; }
+  nav { display: flex; gap: 4px; margin-left: 18px; background: var(--navy); padding: 4px; border-radius: 999px; border: 1px solid var(--line); }
+  nav button { background: transparent; border: 0; color: var(--muted); font-weight: 700; font-size: 12px; letter-spacing: .06em; text-transform: uppercase; padding: 8px 16px; border-radius: 999px; }
+  nav button.on { background: var(--green); color: var(--ink); }
+  .right { margin-left: auto; display: flex; gap: 10px; align-items: center; }
+  #dirty { font-size: 12px; color: var(--mint); font-weight: 600; }
+  a.btn { text-decoration: none; }
+
+  .wrap { max-width: 1180px; margin: 0 auto; padding: 26px 28px 80px; }
+  .bar { display: flex; align-items: center; justify-content: space-between; margin-bottom: 16px; gap: 12px; }
+  .bar h2 { margin: 0; font-size: 20px; font-weight: 800; }
+  .bar p { margin: 4px 0 0; font-size: 13px; color: var(--muted); }
+
+  /* people */
+  #people { display: grid; grid-template-columns: repeat(auto-fill, minmax(340px, 1fr)); gap: 14px; }
+  .person { display: grid; grid-template-columns: 112px minmax(0, 1fr); gap: 14px; background: var(--navy); border: 1px solid var(--line); border-radius: 14px; padding: 14px; }
+  .thumb { width: 112px; height: 136px; border-radius: 10px; overflow: hidden; background: var(--ink); border: 1px solid var(--line); position: relative; display: grid; place-items: center; color: var(--muted); font-size: 11px; text-align: center; }
+  .thumb img { position: absolute; inset: 0; width: 100%; height: 100%; object-fit: cover; }
+  .thumb.busy::after { content: 'Loading…'; position: absolute; inset: 0; display: grid; place-items: center; background: rgba(6,24,36,.8); color: var(--mint); font-weight: 700; font-size: 12px; }
+  .crop { margin-top: 8px; }
+  .crop label { font-size: 10px; font-weight: 700; letter-spacing: .08em; text-transform: uppercase; color: var(--muted); display: block; margin-bottom: 2px; }
+  .crop input { width: 112px; accent-color: var(--green); }
+  .fields { display: grid; grid-template-columns: minmax(0, 1fr); gap: 8px; align-content: start; min-width: 0; }
+  .imgtools { display: flex; flex-wrap: wrap; gap: 6px; margin-top: 6px; }
+  .imgtools .btn { flex: 1 1 auto; min-width: 0; }
+  .input { min-width: 0; }
+  .mini { font-size: 10.5px; padding: 7px 8px; letter-spacing: .03em; border-radius: 8px; white-space: nowrap; }
+  .row-actions { display: flex; gap: 6px; flex-wrap: wrap; margin-top: 2px; }
+  .linkish { background: none; border: 0; color: var(--muted); font-size: 11px; font-weight: 700; letter-spacing: .06em; text-transform: uppercase; padding: 4px 6px; border-radius: 6px; }
+  .linkish:hover { color: var(--mint); background: rgba(138,208,155,.08); }
+  .linkish.danger:hover { color: var(--danger); background: rgba(226,115,95,.1); }
+  .src { font-size: 11px; color: var(--muted); overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+  .src a { color: var(--mint); }
+  .msg { font-size: 12px; color: var(--danger); min-height: 0; }
+
+  /* questions */
+  #questions { display: grid; gap: 12px; }
+  .question { background: var(--navy); border: 1px solid var(--line); border-radius: 14px; padding: 14px 16px; }
+  .qhead { display: flex; gap: 10px; align-items: center; }
+  .qhead .num { font-weight: 800; color: var(--mint); font-size: 13px; width: 26px; flex: none; }
+  .qhead .input { flex: 1; }
+  .qhint { font-size: 11px; color: var(--muted); margin: 10px 0 8px 36px; }
+  .qhint b { color: var(--mint); }
+  .chips { display: flex; flex-wrap: wrap; gap: 6px; margin-left: 36px; }
+  .chip { display: inline-flex; align-items: center; gap: 6px; padding: 4px 10px 4px 4px; border-radius: 999px; font-size: 12px; font-weight: 600; border: 1px solid var(--line-strong); background: transparent; color: var(--muted); }
+  .chip img, .chip .ph { width: 22px; height: 22px; border-radius: 50%; object-fit: cover; background: var(--ink); }
+  .chip.yes { background: var(--green); color: var(--ink); border-color: var(--green); }
+  .chip:hover { border-color: var(--mint); }
+
+  /* settings */
+  .settings { background: var(--navy); border: 1px solid var(--line); border-radius: 14px; padding: 22px; display: grid; gap: 18px; max-width: 560px; }
+  .toggle { display: flex; gap: 10px; align-items: center; font-size: 14px; font-weight: 600; }
+  .toggle input { width: 18px; height: 18px; accent-color: var(--green); }
+  .note { font-size: 12px; color: var(--muted); margin: 6px 0 0; line-height: 1.5; }
+
+  #toast { position: fixed; bottom: 22px; left: 50%; transform: translateX(-50%) translateY(20px); opacity: 0; transition: .25s; background: var(--green); color: var(--ink); font-weight: 700; font-size: 13px; padding: 10px 18px; border-radius: 999px; pointer-events: none; z-index: 20; }
+  #toast.show { opacity: 1; transform: translateX(-50%); }
+  #toast.bad { background: var(--danger); color: var(--white); }
+</style>
+</head>
+<body>
+
+<section id="login">
+  <img class="rings" src="/assets/rings.png" alt="">
+  <form class="login-card" id="loginForm">
+    <img src="/assets/logo-horizontal-white.webp" alt="Seeds Congress">
+    <div class="eyebrow">Guess Who · Admin</div>
+    <h1>Sign in to manage the game</h1>
+    <label class="f" for="pw">Password</label>
+    <input class="input" id="pw" type="password" autocomplete="current-password" required>
+    <p class="err" id="loginErr"></p>
+    <button class="btn btn-primary" style="width:100%;margin-top:8px">Sign in</button>
+  </form>
+</section>
+
+<section id="app" class="hidden">
+  <header>
+    <img class="logo" src="/assets/logo-horizontal-white.webp" alt="Seeds Congress">
+    <div class="divider"></div>
+    <div><div class="eyebrow">Admin</div><h1>Guess Who</h1></div>
+    <nav>
+      <button data-tab="people" class="on">People</button>
+      <button data-tab="questions">Questions</button>
+      <button data-tab="settings">Settings</button>
+    </nav>
+    <div class="right">
+      <span id="dirty"></span>
+      <a class="btn btn-ghost" href="/" target="_blank" rel="noopener">Open game</a>
+      <button class="btn btn-primary" id="save">Save changes</button>
+    </div>
+  </header>
+
+  <div class="wrap">
+    <div data-panel="people">
+      <div class="bar">
+        <div><h2>People</h2><p>Name, position and photo shown on each card. “Get from Wikipedia” pulls the main photo from that person’s Wikipedia page. You can also paste an image link, or upload a file.</p></div>
+        <button class="btn btn-primary" id="addPerson">Add person</button>
+      </div>
+      <div id="people"></div>
+    </div>
+
+    <div data-panel="questions" class="hidden">
+      <div class="bar">
+        <div><h2>Questions</h2><p>For each question, tick everyone whose answer is <b style="color:var(--mint)">YES</b>. Everyone else answers NO.</p></div>
+        <button class="btn btn-primary" id="addQuestion">Add question</button>
+      </div>
+      <div id="questions"></div>
+    </div>
+
+    <div data-panel="settings" class="hidden">
+      <div class="bar"><div><h2>Settings</h2></div></div>
+      <div class="settings">
+        <div><label class="f" for="s-title">Game title</label><input class="input" id="s-title"></div>
+        <div><label class="f" for="s-edition">Edition label</label><input class="input" id="s-edition"></div>
+        <div><label class="f" for="s-max">Questions per round</label><input class="input" id="s-max" type="number" min="1" max="50" style="max-width:120px"></div>
+        <div>
+          <label class="toggle"><input type="checkbox" id="s-auto"> Rule people out automatically after each answer</label>
+          <p class="note">When off, players flip cards themselves by clicking them, like the board game.</p>
+        </div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<input type="file" id="file" accept="image/*" class="hidden">
+<div id="toast"></div>
+<script src="/admin.js"></script>
+</body>
+</html>

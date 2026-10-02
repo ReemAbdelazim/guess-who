@@ -1,0 +1,203 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Guess Who? · Seeds Congress 2026</title>
+<link rel="icon" href="/assets/logo-stacked-white.webp">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Montserrat:wght@500;600;700;800&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="/brand.css">
+<style>
+  html, body { height: 100%; overflow: hidden; }
+  body {
+    display: grid; grid-template-rows: auto 1fr;
+    background:
+      radial-gradient(1200px 600px at 100% 0%, rgba(79,176,109,.10), transparent 60%),
+      var(--ink);
+    position: relative;
+  }
+  /* brand ring motif, like the Congress 2026 poster */
+  .rings { position: fixed; pointer-events: none; opacity: .14; z-index: 0; }
+  .rings.tr { width: 520px; top: -260px; right: -200px; }
+  .rings.bl { width: 420px; bottom: -230px; left: -230px; }
+
+  /* ---------- header ---------- */
+  header {
+    position: relative; z-index: 1;
+    display: flex; align-items: center; gap: 22px;
+    padding: 12px 24px; border-bottom: 1px solid var(--line);
+  }
+  header .logo { height: 38px; display: block; }
+  header .divider { width: 1px; align-self: stretch; background: var(--line-strong); }
+  .title-block .eyebrow { margin-bottom: 2px; }
+  .title-block h1 { margin: 0; font-size: 22px; font-weight: 800; letter-spacing: -.01em; line-height: 1.1; }
+  .title-block h1 span { color: var(--mint); }
+  .stats { margin-left: auto; display: flex; gap: 26px; align-items: center; }
+  .stat { text-align: center; }
+  .stat .k { font-size: 10px; font-weight: 700; letter-spacing: .14em; text-transform: uppercase; color: var(--muted); }
+  .stat .v { font-size: 20px; font-weight: 800; color: var(--white); line-height: 1.2; font-variant-numeric: tabular-nums; }
+  .stat .v em { font-style: normal; color: var(--mint); }
+
+  /* ---------- main ---------- */
+  main {
+    position: relative; z-index: 1; min-height: 0;
+    display: grid; grid-template-columns: 1fr 330px; gap: 18px; padding: 16px 20px 16px 24px;
+  }
+  #board { min-width: 0; min-height: 0; position: relative; }
+  #grid { display: grid; justify-content: center; align-content: center; height: 100%; }
+
+  .card {
+    position: relative; display: flex; flex-direction: column;
+    background: var(--navy); border: 1px solid var(--line); border-radius: var(--radius);
+    overflow: hidden; padding: 0; text-align: left; color: inherit;
+    transition: transform .18s ease, border-color .18s, box-shadow .18s, opacity .3s;
+  }
+  .card:hover { border-color: var(--line-strong); transform: translateY(-2px); box-shadow: 0 10px 24px rgba(0,0,0,.35); }
+  .card .photo { position: relative; flex: 1 1 auto; min-height: 0; background: var(--navy-2); overflow: hidden; }
+  .card img { position: absolute; inset: 0; width: 100%; height: 100%; object-fit: cover; transition: filter .35s, opacity .35s, transform .35s; }
+  .card .meta { padding: var(--meta-pad, 8px 10px 9px); border-top: 2px solid var(--green); }
+  .card .name { font-weight: 700; font-size: var(--name-size, 14px); letter-spacing: -.01em; line-height: 1.2; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+  .card .role { font-weight: 500; font-size: var(--role-size, 11px); color: var(--mint); line-height: 1.25; margin-top: 2px; display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; overflow: hidden; }
+  .card .meta { flex: none; height: var(--meta-h, auto); }
+
+  .card.out { opacity: .55; }
+  .card.out img { filter: grayscale(1) brightness(.45); }
+  .card.out .meta { border-top-color: rgba(255,255,255,.15); }
+  .card.out .name, .card.out .role { color: var(--muted); }
+  .card .stamp {
+    position: absolute; inset: 0; display: grid; place-items: center; opacity: 0; transition: opacity .3s;
+  }
+  .card .stamp svg { width: 46%; height: auto; }
+  .card.out .stamp { opacity: 1; }
+
+  body.guessing .card:not(.out) { border-color: var(--green); box-shadow: 0 0 0 2px rgba(79,176,109,.35); }
+  body.guessing .card:not(.out):hover { box-shadow: 0 0 0 3px var(--mint); }
+  body.guessing .card.out { pointer-events: none; }
+
+  /* ---------- side panel ---------- */
+  aside {
+    min-height: 0; display: flex; flex-direction: column; gap: 14px;
+    background: linear-gradient(180deg, rgba(11,45,68,.92), rgba(11,45,68,.75));
+    border: 1px solid var(--line); border-radius: 16px; padding: 16px;
+  }
+  .mystery { display: flex; gap: 14px; align-items: center; }
+  .mystery .slot {
+    width: 74px; height: 88px; flex: none; border-radius: 10px; position: relative; overflow: hidden;
+    background: var(--ink); border: 1px dashed var(--line-strong); display: grid; place-items: center;
+  }
+  .mystery .slot .q { font-size: 40px; font-weight: 800; color: var(--mint); }
+  .mystery .slot img { position: absolute; inset: 0; width: 100%; height: 100%; object-fit: cover; }
+  .mystery h2 { margin: 2px 0 0; font-size: 16px; font-weight: 700; }
+  .mystery p { margin: 4px 0 0; font-size: 12px; color: var(--muted); line-height: 1.4; }
+
+  .section-title { display: flex; justify-content: space-between; align-items: baseline; }
+  .section-title .count { font-size: 11px; font-weight: 600; color: var(--muted); }
+  #questions { flex: 1 1 auto; min-height: 0; overflow-y: auto; display: flex; flex-direction: column; gap: 6px; padding-right: 4px; margin-right: -6px; }
+  #questions::-webkit-scrollbar { width: 6px; }
+  #questions::-webkit-scrollbar-thumb { background: var(--line-strong); border-radius: 3px; }
+  .qbtn {
+    display: flex; align-items: center; gap: 10px; width: 100%;
+    background: rgba(6,24,36,.55); color: var(--white); border: 1px solid var(--line); border-radius: 10px;
+    padding: 9px 11px; font-size: 12.5px; font-weight: 600; text-align: left; line-height: 1.35;
+    transition: border-color .15s, background .15s;
+  }
+  .qbtn:hover:not(:disabled) { border-color: var(--green); background: rgba(79,176,109,.12); }
+  .qbtn:disabled { cursor: default; }
+  .qbtn .ans { margin-left: auto; flex: none; font-size: 10px; font-weight: 800; letter-spacing: .1em; padding: 4px 8px; border-radius: 999px; }
+  .qbtn .ans.yes { background: var(--green); color: var(--ink); }
+  .qbtn .ans.no { background: transparent; color: var(--white); border: 1px solid rgba(255,255,255,.5); }
+  .qbtn.asked { background: rgba(79,176,109,.08); }
+  .qbtn.locked:not(.asked) { opacity: .35; }
+
+  .actions { display: grid; gap: 8px; }
+  .actions .btn { width: 100%; padding: 12px; }
+  #hint { font-size: 12px; color: var(--muted); text-align: center; min-height: 16px; margin: 0; }
+
+  /* ---------- result modal ---------- */
+  #modal { position: fixed; inset: 0; z-index: 10; display: none; place-items: center; background: rgba(6,24,36,.82); backdrop-filter: blur(4px); }
+  #modal.show { display: grid; }
+  .result {
+    width: min(440px, 92vw); text-align: center; padding: 28px 28px 24px; border-radius: 20px;
+    background: var(--navy); border: 1px solid var(--line-strong); position: relative; overflow: hidden;
+  }
+  .result .portrait { width: 150px; height: 180px; margin: 14px auto 14px; border-radius: 14px; overflow: hidden; border: 3px solid var(--green); }
+  .result .portrait img { width: 100%; height: 100%; object-fit: cover; }
+  .result h3 { margin: 6px 0 0; font-size: 26px; font-weight: 800; }
+  .result .who { font-size: 18px; font-weight: 700; }
+  .result .role { font-size: 13px; color: var(--mint); margin-top: 2px; }
+  .result .msg { font-size: 13px; color: var(--muted); margin: 12px 0 18px; }
+
+  .empty { display: grid; place-items: center; height: 100%; color: var(--muted); text-align: center; }
+
+  @media (max-width: 900px) {
+    html, body { overflow: auto; height: auto; }
+    main { grid-template-columns: 1fr; }
+    #board { height: 70vh; }
+    .stats { gap: 14px; }
+    header { flex-wrap: wrap; }
+  }
+</style>
+</head>
+<body>
+  <img class="rings tr" src="/assets/rings.png" alt="">
+  <img class="rings bl" src="/assets/rings.png" alt="">
+
+  <header>
+    <img class="logo" src="/assets/logo-horizontal-white.webp" alt="Seeds Congress">
+    <div class="divider"></div>
+    <div class="title-block">
+      <div class="eyebrow" id="edition">Career Edition</div>
+      <h1 id="title">Guess Who?</h1>
+    </div>
+    <div class="stats">
+      <div class="stat"><div class="k">Round</div><div class="v" id="s-round">1</div></div>
+      <div class="stat"><div class="k">Questions</div><div class="v"><em id="s-used">0</em> / <span id="s-max">6</span></div></div>
+      <div class="stat"><div class="k">Remaining</div><div class="v"><em id="s-left">0</em> / <span id="s-total">0</span></div></div>
+      <div class="stat"><div class="k">Wins</div><div class="v" id="s-wins">0</div></div>
+    </div>
+    <button class="btn btn-ghost" id="newGame">New game</button>
+  </header>
+
+  <main>
+    <section id="board"><div id="grid"></div></section>
+
+    <aside>
+      <div class="mystery">
+        <div class="slot" id="slot"><span class="q">?</span></div>
+        <div>
+          <div class="eyebrow">Mystery professional</div>
+          <h2>Who is it?</h2>
+          <p id="intro">Ask up to 6 questions, then make your guess.</p>
+        </div>
+      </div>
+
+      <div class="section-title">
+        <div class="eyebrow">Ask a question</div>
+        <div class="count" id="q-count"></div>
+      </div>
+      <div id="questions"></div>
+
+      <div class="actions">
+        <p id="hint"></p>
+        <button class="btn btn-primary" id="guessBtn">Make your guess</button>
+      </div>
+    </aside>
+  </main>
+
+  <div id="modal" role="dialog" aria-modal="true">
+    <div class="result">
+      <div class="eyebrow" id="r-eyebrow">Result</div>
+      <h3 id="r-title"></h3>
+      <div class="portrait"><img id="r-img" alt=""></div>
+      <div class="who" id="r-name"></div>
+      <div class="role" id="r-role"></div>
+      <p class="msg" id="r-msg"></p>
+      <button class="btn btn-primary" id="again">Play again</button>
+    </div>
+  </div>
+
+<script src="/game.js"></script>
+</body>
+</html>
