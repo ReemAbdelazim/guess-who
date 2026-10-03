@@ -5,9 +5,19 @@
 
 The game has no admin buttons or links. Only `/admin` can change people, photos, positions, questions and settings.
 
-## How the game works
+## How to play
 
-The game secretly picks one person. Players click questions in the side panel and get a YES or NO answer. Everyone who doesn't match is ruled out automatically. You can turn that off in Admin, then Settings. Players can also click a card to rule a person out or bring them back. When they're ready, they press **Make your guess** and click a card. The board resizes itself so every person fits on a laptop screen without scrolling, even after you add or remove people.
+Two teams compete head-to-head to work out each other's secret person. Every person on the board is a prominent Muslim figure, historical or contemporary. Each team plays on its own laptop with the game open. The two laptops don't need to be connected.
+
+1. Each team secretly chooses one person from the board and locks them in. That's who the other team has to guess.
+2. Don't know someone? Click the **i** on their card for a short bio and a few facts.
+3. Start the timer. Teams take turns asking the other team one yes-or-no question at a time. There's no limit on how many questions you ask.
+4. Click a card to rule that person out. Click it again to bring them back.
+5. Each team gets 5 minutes in total to ask questions. Facilitators can change the time with the − and + buttons before a round, or add a minute during one.
+6. When you're sure, or when time runs out, lock in your guess.
+7. Both teams reveal their secret person. If both teams guess correctly, both teams win.
+
+If the page is refreshed by accident, the round picks up where it left off.
 
 ## Admin
 
@@ -22,16 +32,16 @@ The site is hosted on GitHub Pages, which can't run a server. The admin page sav
 
 **Editing:**
 
-- **People:** name, position (the line under the name), and photo. *Get from Wikipedia* takes a name or a Wikipedia link and pulls that page's main photo. *Upload file* uses your own photo. Photos are resized to 800px and saved in `uploads/`. The *Photo position* slider moves the crop up or down so faces stay in frame.
-- **Questions:** edit the wording, then click everyone whose answer is YES. Everyone else answers NO.
-- **Settings:** title, edition label, questions per round, and auto rule-out.
+- **People:** name, position (the line under the name), the facts players see when they click **i**, and photo. *Get from Wikipedia* takes a name or a Wikipedia link and pulls that page's main photo. *Upload file* uses your own photo. Photos are resized to 800px and saved in `uploads/`. The *Photo position* slider moves the crop up or down so faces stay in frame.
+- **Example questions:** ideas shown to teams during a round. Teams can ask any yes-or-no question they like.
+- **Settings:** title, edition label, and the default time to ask questions.
 - Click **Save changes**. GitHub Pages republishes the site, and the game shows the update about a minute later.
 
 ## Files
 
 - `index.html`, `game.js`, `brand.css`, `assets/`: the game and the Seeds Congress branding.
 - `admin/`: the admin page.
-- `data/data.json`: all people, questions and settings.
+- `data/data.json`: all people, facts, example questions and settings.
 - `uploads/`: the photos.
 
 To preview locally, run a static server in this folder (for example `python -m http.server`) and open http://localhost:8000.

@@ -34,6 +34,7 @@
   }
   .input:focus { outline: none; border-color: var(--green); box-shadow: 0 0 0 3px rgba(79,176,109,.2); }
   .input.sm { padding: 7px 10px; font-size: 13px; }
+  textarea.input { resize: vertical; line-height: 1.45; min-height: 84px; }
 
   /* app shell */
   header {
@@ -135,7 +136,7 @@
     <div><div class="eyebrow">Admin</div><h1>Guess Who</h1></div>
     <nav>
       <button data-tab="people" class="on">People</button>
-      <button data-tab="questions">Questions</button>
+      <button data-tab="questions">Example questions</button>
       <button data-tab="settings">Settings</button>
     </nav>
     <div class="right">
@@ -149,7 +150,7 @@
   <div class="wrap">
     <div data-panel="people">
       <div class="bar">
-        <div><h2>People</h2><p>Name, position and photo shown on each card. “Get from Wikipedia” pulls the main photo from that person’s Wikipedia page. You can also upload a file.</p></div>
+        <div><h2>People</h2><p>Name, position, facts and photo for each card. Players see the facts when they click the <b>i</b> on a card. “Get from Wikipedia” pulls the main photo from that person’s Wikipedia page. You can also upload a file.</p></div>
         <button class="btn btn-primary" id="addPerson">Add person</button>
       </div>
       <div id="people"></div>
@@ -157,7 +158,7 @@
 
     <div data-panel="questions" class="hidden">
       <div class="bar">
-        <div><h2>Questions</h2><p>For each question, tick everyone whose answer is <b style="color:var(--mint)">YES</b>. Everyone else answers NO.</p></div>
+        <div><h2>Example questions</h2><p>Ideas shown to teams during the game. Teams can ask any yes-or-no question they like.</p></div>
         <button class="btn btn-primary" id="addQuestion">Add question</button>
       </div>
       <div id="questions"></div>
@@ -168,10 +169,10 @@
       <div class="settings">
         <div><label class="f" for="s-title">Game title</label><input class="input" id="s-title"></div>
         <div><label class="f" for="s-edition">Edition label</label><input class="input" id="s-edition"></div>
-        <div><label class="f" for="s-max">Questions per round</label><input class="input" id="s-max" type="number" min="1" max="50" style="max-width:120px"></div>
         <div>
-          <label class="toggle"><input type="checkbox" id="s-auto"> Rule people out automatically after each answer</label>
-          <p class="note">When off, players flip cards themselves by clicking them, like the board game.</p>
+          <label class="f" for="s-mins">Default time to ask questions (minutes)</label>
+          <input class="input" id="s-mins" type="number" min="1" max="30" style="max-width:120px">
+          <p class="note">Facilitators can still change the time on each laptop before a round starts.</p>
         </div>
       </div>
     </div>

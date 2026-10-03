@@ -1,39 +1,53 @@
+// Guess Who? · team vs team. Each team runs this page on its own laptop:
+// pick a secret person, run the question timer, rule people out, lock in a guess, reveal.
 (() => {
   const $ = s => document.querySelector(s);
   const grid = $('#grid'), board = $('#board');
-
+  const esc = s => String(s ?? '').replace(/[&<>"']/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
   const X_SVG = '<svg viewBox="0 0 100 100" aria-hidden="true"><circle cx="50" cy="50" r="44" fill="rgba(6,24,36,.55)" stroke="#8AD09B" stroke-width="3"/><path d="M34 34 L66 66 M66 34 L34 66" stroke="#fff" stroke-width="6" stroke-linecap="round"/></svg>';
 
   let data = null;
-  const state = { round: 1, wins: 0, mystery: null, asked: {}, out: new Set(), guessing: false, over: false };
+  // phase: 'pick' → 'play' → 'result'
+  let state = { phase: 'pick', round: 1, wins: 0, mins: 5, pickId: null, mineId: null, out: [], timeLeft: 0, total: 0, endsAt: null, guessId: null, resolved: null, concealed: false };
+  let guessing = false, ticker = null;
 
-  const esc = s => String(s ?? '').replace(/[&<>"']/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
-  const max = () => Math.max(1, Number(data.settings.maxQuestions) || 6);
-  const used = () => Object.keys(state.asked).length;
+  const person = id => data.people.find(p => p.id === id);
+  const save = () => { try { sessionStorage.setItem('gw-game', JSON.stringify(state)); } catch {} };
+  const fmt = ms => { const s = Math.max(0, Math.ceil(ms / 1000)); return Math.floor(s / 60) + ':' + String(s % 60).padStart(2, '0'); };
+  const remaining = () => state.endsAt ? Math.max(0, state.endsAt - Date.now()) : state.timeLeft;
 
   async function load() {
     const r = await fetch('data/data.json?v=' + Date.now(), { cache: 'no-store' });
     data = await r.json();
     $('#title').textContent = data.settings.title || 'Guess Who?';
     $('#edition').textContent = data.settings.edition || '';
-    document.title = (data.settings.title || 'Guess Who?') + ' · Seeds Congress 2026';
+    state.mins = Number(data.settings.roundMinutes) || 5;
+    // Survive an accidental refresh mid-round (this tab only).
+    try {
+      const saved = JSON.parse(sessionStorage.getItem('gw-game') || 'null');
+      if (saved && (!saved.mineId || person(saved.mineId))) state = { ...state, ...saved };
+    } catch {}
+    $('#examples').innerHTML = data.questions.map(q => `<li>${esc(q.text)}</li>`).join('');
     renderGrid();
-    newGame(true);
     new ResizeObserver(layout).observe(board);
     if (document.fonts) document.fonts.ready.then(layout);
+    render();
+    if (state.endsAt) startTicker();
+    if (state.phase === 'result') showResult(); // page was reloaded mid-reveal
   }
 
   // ---------- board ----------
   function renderGrid() {
-    if (!data.people.length) { grid.innerHTML = '<div class="empty">No people yet.</div>'; return; }
+    if (!data.people.length) { grid.innerHTML = '<div class="hint">No people yet. Add some in admin.</div>'; return; }
     grid.innerHTML = data.people.map(p => `
-      <button class="card" data-id="${esc(p.id)}" title="${esc(p.name)} — ${esc(p.position)}">
+      <div class="card" role="button" tabindex="0" data-id="${esc(p.id)}" aria-label="${esc(p.name)}, ${esc(p.position)}">
         <div class="photo">
-          ${p.image ? `<img src="${esc(p.image)}" alt="${esc(p.name)}" style="object-position:50% ${Number(p.imageY ?? 20)}%" loading="eager">` : ''}
+          ${p.image ? `<img src="${esc(p.image)}" alt="" style="object-position:50% ${Number(p.imageY ?? 20)}%">` : ''}
           <div class="stamp">${X_SVG}</div>
+          <button class="info" data-info="${esc(p.id)}" aria-label="About ${esc(p.name)}" title="Who is this?">i</button>
         </div>
         <div class="meta"><div class="name">${esc(p.name)}</div><div class="role">${esc(p.position)}</div></div>
-      </button>`).join('');
+      </div>`).join('');
     layout();
   }
 
@@ -83,7 +97,7 @@
     fitNames();
   }
 
-  // Shrink a long name (e.g. "Martin Luther King Jr.") until it fits on one line.
+  // Shrink a long name (e.g. "Salahuddin al-Ayyubi") until it fits on one line.
   function fitNames() {
     grid.querySelectorAll('.name').forEach(el => {
       el.style.fontSize = '';
@@ -93,113 +107,204 @@
     });
   }
 
-  // ---------- questions ----------
-  function renderQuestions() {
-    const locked = state.over || used() >= max();
-    $('#questions').innerHTML = data.questions.map(q => {
-      const a = state.asked[q.id];
-      const ans = a === undefined ? '' : `<span class="ans ${a ? 'yes' : 'no'}">${a ? 'YES' : 'NO'}</span>`;
-      return `<button class="qbtn ${a !== undefined ? 'asked' : ''} ${locked ? 'locked' : ''}" data-q="${esc(q.id)}" ${a !== undefined || locked ? 'disabled' : ''}>
-        <span>${esc(q.text)}</span>${ans}</button>`;
-    }).join('') || '<p class="count">No questions yet.</p>';
-    $('#q-count').textContent = `${max() - used()} left`;
+  // ---------- rendering ----------
+  function slot(p, empty) {
+    if (!p) return `<div class="ph">?</div><div class="empty-txt">${empty}</div>`;
+    return `<div class="ph"><img src="${esc(p.image)}" alt="" style="object-position:50% ${Number(p.imageY ?? 20)}%"></div>
+      <div><div class="nm">${esc(p.name)}</div><div class="rl">${esc(p.position)}</div>${empty}</div>`;
   }
 
-  function ask(qid) {
-    if (state.over || used() >= max() || state.asked[qid] !== undefined) return;
-    const q = data.questions.find(x => x.id === qid);
-    const yesSet = new Set(q.yes || []);
-    const answer = yesSet.has(state.mystery.id);
-    state.asked[qid] = answer;
-    if (data.settings.autoEliminate !== false) {
-      data.people.forEach(p => { if (yesSet.has(p.id) !== answer) state.out.add(p.id); });
+  function render() {
+    const out = new Set(state.out);
+    document.querySelectorAll('.card').forEach(c => {
+      const id = c.dataset.id;
+      c.classList.toggle('picked', state.phase === 'pick' && id === state.pickId);
+      c.classList.toggle('mine', state.phase !== 'pick' && id === state.mineId);
+      c.classList.toggle('out', state.phase !== 'pick' && out.has(id));
+    });
+    document.body.classList.toggle('guessing', guessing);
+    document.body.classList.toggle('concealed', state.concealed);
+
+    $('#s-round').textContent = state.round;
+    $('#s-total').textContent = data.people.length;
+    $('#s-left').textContent = data.people.length - (state.phase === 'pick' ? 0 : out.size);
+    $('#s-wins').textContent = state.wins;
+    $('#howMins').textContent = `${state.mins} minute${state.mins === 1 ? '' : 's'}`;
+
+    $('#step-pick').classList.toggle('hidden', state.phase !== 'pick');
+    $('#step-play').classList.toggle('hidden', state.phase === 'pick');
+
+    if (state.phase === 'pick') {
+      $('#pickSlot').innerHTML = slot(person(state.pickId), state.pickId ? '' : 'Click a card to choose.');
+      $('#lockPick').disabled = !state.pickId;
+      $('#mins').textContent = state.mins + ' min';
+    } else {
+      const me = person(state.mineId);
+      $('#mySlot').innerHTML = slot(me, `<button class="linkbtn" id="toggleHide">${state.concealed ? 'Show' : 'Hide'}</button>`);
+      $('#mySlot').classList.toggle('concealed', state.concealed);
+      renderTimer();
+      $('#guessBtn').textContent = guessing ? 'Cancel' : 'Lock in our guess';
+      $('#guessBtn').className = 'btn ' + (guessing ? 'btn-ghost' : 'btn-primary');
+      $('#guessBtn').disabled = state.phase === 'result';
+      const left = data.people.length - out.size;
+      $('#hint').textContent = guessing ? 'Click the person you think the other team chose.'
+        : remaining() <= 0 ? 'Time is up. Lock in your guess.'
+        : !state.endsAt && state.timeLeft === state.total ? 'Start the timer when both teams are ready.'
+        : left === 1 ? 'Only one person left. Lock in your guess.'
+        : 'Click a card to rule that person out.';
     }
-    refresh();
-    if (used() >= max()) setGuessing(true);
+    save();
   }
 
-  // ---------- guessing ----------
-  function setGuessing(on) {
-    state.guessing = on && !state.over;
-    document.body.classList.toggle('guessing', state.guessing);
-    $('#guessBtn').textContent = state.guessing ? 'Cancel guess' : 'Make your guess';
-    $('#guessBtn').className = 'btn ' + (state.guessing ? 'btn-ghost' : 'btn-primary');
-    hint();
+  function renderTimer() {
+    const ms = remaining();
+    $('#clock').textContent = fmt(ms);
+    $('#bar').style.width = (state.total ? (ms / state.total) * 100 : 0) + '%';
+    const t = $('#timer');
+    t.classList.toggle('low', ms > 0 && ms <= 60000);
+    t.classList.toggle('done', ms <= 0);
+    $('#startBtn').textContent = state.endsAt ? 'Pause' : (state.timeLeft === state.total ? 'Start timer' : 'Resume');
+    $('#startBtn').disabled = ms <= 0 || state.phase === 'result';
   }
 
-  function guess(id) {
-    state.over = true;
-    setGuessing(false);
-    const win = id === state.mystery.id;
-    if (win) state.wins++;
-    const m = state.mystery;
-    $('#r-eyebrow').textContent = win ? 'Correct' : 'Not quite';
-    $('#r-title').textContent = win ? 'You got it!' : 'It was…';
-    $('#r-img').src = m.image; $('#r-img').alt = m.name;
-    $('#r-img').style.objectPosition = `50% ${Number(m.imageY ?? 20)}%`;
-    $('#r-name').textContent = m.name;
-    $('#r-role').textContent = m.position;
-    const n = used();
-    $('#r-msg').textContent = win
-      ? `Solved with ${n} question${n === 1 ? '' : 's'}.`
-      : `You guessed ${data.people.find(p => p.id === id).name}.`;
-    const slot = $('#slot');
-    slot.innerHTML = `<img src="${esc(m.image)}" alt="" style="object-position:50% ${Number(m.imageY ?? 20)}%">`;
-    refresh();
-    $('#modal').classList.add('show');
-    $('#again').focus();
+  // ---------- timer ----------
+  function startTicker() {
+    clearInterval(ticker);
+    ticker = setInterval(() => {
+      renderTimer();
+      if (remaining() <= 0) timeUp();
+    }, 250);
+  }
+  function timeUp() {
+    clearInterval(ticker); ticker = null;
+    state.timeLeft = 0; state.endsAt = null;
+    render();
+    if (state.phase === 'play') openModal('#upModal');
+  }
+  function toggleTimer() {
+    if (state.endsAt) { state.timeLeft = remaining(); state.endsAt = null; clearInterval(ticker); ticker = null; }
+    else if (state.timeLeft > 0) { state.endsAt = Date.now() + state.timeLeft; startTicker(); }
+    render();
+  }
+  function addMinute() {
+    if (state.endsAt) state.endsAt += 60000; else state.timeLeft += 60000;
+    state.total += 60000;
+    render();
   }
 
   // ---------- flow ----------
-  function newGame(first) {
-    if (!data.people.length) return;
-    if (!first) state.round++;
-    state.mystery = data.people[Math.floor(Math.random() * data.people.length)];
-    state.asked = {}; state.out = new Set(); state.over = false;
-    $('#slot').innerHTML = '<span class="q">?</span>';
-    $('#modal').classList.remove('show');
-    setGuessing(false);
-    refresh();
+  function lockPick() {
+    if (!state.pickId) return;
+    state.mineId = state.pickId; state.phase = 'play'; state.out = [];
+    state.total = state.timeLeft = state.mins * 60000; state.endsAt = null;
+    state.concealed = false;
+    render();
   }
 
-  function hint() {
-    const left = data.people.length - state.out.size;
-    let t = '';
-    if (state.over) t = 'Round over. Start a new game.';
-    else if (state.guessing) t = 'Click the person you think it is.';
-    else if (used() >= max()) t = 'Out of questions. Time to guess!';
-    else if (left === 1) t = 'Only one left. Make your guess!';
-    else t = 'Click a card to rule someone out yourself.';
-    $('#hint').textContent = t;
+  function setGuessing(on) { guessing = on && state.phase === 'play'; render(); }
+
+  function lockGuess(id) {
+    guessing = false;
+    if (state.endsAt) { state.timeLeft = remaining(); state.endsAt = null; }
+    clearInterval(ticker); ticker = null;
+    state.guessId = id; state.phase = 'result'; state.resolved = null;
+    render(); showResult();
   }
 
-  function refresh() {
-    document.querySelectorAll('.card').forEach(c => c.classList.toggle('out', state.out.has(c.dataset.id)));
-    $('#s-round').textContent = state.round;
-    $('#s-used').textContent = used();
-    $('#s-max').textContent = max();
-    $('#s-left').textContent = data.people.length - state.out.size;
-    $('#s-total').textContent = data.people.length;
-    $('#s-wins').textContent = state.wins;
-    $('#intro').textContent = `Ask up to ${max()} questions, then make your guess.`;
-    $('#guessBtn').disabled = state.over;
-    renderQuestions();
-    hint();
+  function showResult() {
+    const g = person(state.guessId), m = person(state.mineId);
+    const fill = (k, p) => {
+      $(`#res${k}Img`).src = p.image; $(`#res${k}Img`).style.objectPosition = `50% ${Number(p.imageY ?? 20)}%`;
+      $(`#res${k}Name`).textContent = p.name; $(`#res${k}Role`).textContent = p.position;
+    };
+    fill('Guess', g); fill('Mine', m);
+    const r = state.resolved;
+    $('#resTitle').textContent = r === true ? 'You got it!' : r === false ? 'Not this time' : 'Time to reveal';
+    $('#resMsg').textContent = r === true
+      ? 'Nice work. If the other team also guessed right, both teams win this round.'
+      : r === false
+        ? 'The other team keeps their secret this round. If they guessed your person, they win.'
+        : 'Show your secret person to the other team and ask them to reveal theirs. Then tell us how you did.';
+    $('#resAsk').classList.toggle('hidden', r !== null);
+    $('#resNext').classList.toggle('hidden', r === null);
+    openModal('#resultModal');
+  }
+
+  function resolve(right) {
+    state.resolved = right;
+    if (right) state.wins++;
+    render(); showResult();
+  }
+
+  function newRound(bumpRound) {
+    clearInterval(ticker); ticker = null; guessing = false;
+    if (bumpRound) state.round++;
+    Object.assign(state, { phase: 'pick', pickId: null, mineId: null, out: [], timeLeft: 0, total: 0, endsAt: null, guessId: null, resolved: null, concealed: false });
+    closeModals(); render();
+  }
+
+  // ---------- modals ----------
+  function openModal(sel) { closeModals(); $(sel).classList.add('show'); const b = $(sel).querySelector('button'); if (b) b.focus(); }
+  function closeModals() { document.querySelectorAll('.modal.show').forEach(m => m.classList.remove('show')); }
+
+  function showInfo(id) {
+    const p = person(id); if (!p) return;
+    $('#bioImg').src = p.image; $('#bioImg').style.objectPosition = `50% ${Number(p.imageY ?? 20)}%`;
+    $('#bioName').textContent = p.name;
+    $('#bioRole').textContent = p.position;
+    const facts = (p.facts || []).filter(Boolean);
+    $('#bioFacts').innerHTML = facts.length ? facts.map(f => `<li>${esc(f)}</li>`).join('') : '<li>No facts added yet.</li>';
+    $('#bioSrc').innerHTML = p.source ? `Read more on <a href="${esc(p.source)}" target="_blank" rel="noopener">Wikipedia</a>` : '';
+    openModal('#infoModal');
   }
 
   // ---------- events ----------
+  function cardAction(id) {
+    if (state.phase === 'pick') { state.pickId = state.pickId === id ? null : id; render(); return; }
+    if (state.phase !== 'play') return;
+    if (guessing) {
+      if (state.out.includes(id)) return;
+      return lockGuess(id);
+    }
+    state.out = state.out.includes(id) ? state.out.filter(x => x !== id) : [...state.out, id];
+    render();
+  }
   grid.addEventListener('click', e => {
-    const card = e.target.closest('.card'); if (!card || state.over) return;
-    const id = card.dataset.id;
-    if (state.guessing) return guess(id);
-    state.out.has(id) ? state.out.delete(id) : state.out.add(id);
-    refresh();
+    const info = e.target.closest('.info');
+    if (info) { e.stopPropagation(); return showInfo(info.dataset.info); }
+    const card = e.target.closest('.card'); if (card) cardAction(card.dataset.id);
   });
-  $('#questions').addEventListener('click', e => { const b = e.target.closest('.qbtn'); if (b) ask(b.dataset.q); });
-  $('#guessBtn').addEventListener('click', () => setGuessing(!state.guessing));
-  $('#newGame').addEventListener('click', () => newGame(false));
-  $('#again').addEventListener('click', () => newGame(false));
-  document.addEventListener('keydown', e => { if (e.key === 'Escape') { if (state.guessing) setGuessing(false); } });
+  grid.addEventListener('keydown', e => {
+    if (e.target.classList.contains('card') && (e.key === 'Enter' || e.key === ' ')) { e.preventDefault(); cardAction(e.target.dataset.id); }
+  });
 
-  load().catch(err => { grid.innerHTML = `<div class="empty">Could not load the game.<br>${esc(err.message)}</div>`; });
+  $('#minus').addEventListener('click', () => { state.mins = Math.max(1, state.mins - 1); render(); });
+  $('#plus').addEventListener('click', () => { state.mins = Math.min(30, state.mins + 1); render(); });
+  $('#lockPick').addEventListener('click', lockPick);
+  $('#startBtn').addEventListener('click', toggleTimer);
+  $('#addMin').addEventListener('click', addMinute);
+  $('#guessBtn').addEventListener('click', () => setGuessing(!guessing));
+  $('#upGuess').addEventListener('click', () => { closeModals(); setGuessing(true); });
+  $('#mySlot').addEventListener('click', e => { if (e.target.id === 'toggleHide') { state.concealed = !state.concealed; render(); } });
+  $('#gotIt').addEventListener('click', () => resolve(true));
+  $('#missed').addEventListener('click', () => resolve(false));
+  $('#again').addEventListener('click', () => newRound(true));
+  $('#howBtn').addEventListener('click', () => openModal('#howModal'));
+  $('#newRound').addEventListener('click', () => {
+    if (state.phase === 'play' && !confirm('Start a new round? This round’s progress will be lost.')) return;
+    newRound(state.phase !== 'pick');
+  });
+  document.querySelectorAll('.modal').forEach(m => m.addEventListener('click', e => {
+    // the result and time's-up screens need an answer; the others close on backdrop click
+    if (m.id === 'resultModal' || m.id === 'upModal') return;
+    if (e.target === m || e.target.closest('[data-close]')) m.classList.remove('show');
+  }));
+  document.addEventListener('keydown', e => {
+    if (e.key !== 'Escape') return;
+    const open = document.querySelector('.modal.show');
+    if (open && open.id !== 'resultModal' && open.id !== 'upModal') open.classList.remove('show');
+    else if (guessing) setGuessing(false);
+  });
+
+  load().catch(err => { grid.innerHTML = `<div class="hint">Could not load the game. ${esc(err.message)}</div>`; });
 })();

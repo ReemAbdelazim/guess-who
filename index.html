@@ -18,6 +18,7 @@
       var(--ink);
     position: relative;
   }
+  .hidden { display: none !important; }
   /* brand ring motif, like the Congress 2026 poster */
   .rings { position: fixed; pointer-events: none; opacity: .14; z-index: 0; }
   .rings.tr { width: 520px; top: -260px; right: -200px; }
@@ -33,12 +34,12 @@
   header .divider { width: 1px; align-self: stretch; background: var(--line-strong); }
   .title-block .eyebrow { margin-bottom: 2px; }
   .title-block h1 { margin: 0; font-size: 22px; font-weight: 800; letter-spacing: -.01em; line-height: 1.1; }
-  .title-block h1 span { color: var(--mint); }
   .stats { margin-left: auto; display: flex; gap: 26px; align-items: center; }
   .stat { text-align: center; }
   .stat .k { font-size: 10px; font-weight: 700; letter-spacing: .14em; text-transform: uppercase; color: var(--muted); }
   .stat .v { font-size: 20px; font-weight: 800; color: var(--white); line-height: 1.2; font-variant-numeric: tabular-nums; }
   .stat .v em { font-style: normal; color: var(--mint); }
+  .head-actions { display: flex; gap: 8px; }
 
   /* ---------- main ---------- */
   main {
@@ -49,32 +50,43 @@
   #grid { display: grid; justify-content: center; align-content: center; height: 100%; }
 
   .card {
-    position: relative; display: flex; flex-direction: column;
+    position: relative; display: flex; flex-direction: column; cursor: pointer;
     background: var(--navy); border: 1px solid var(--line); border-radius: var(--radius);
-    overflow: hidden; padding: 0; text-align: left; color: inherit;
+    overflow: hidden; text-align: left; color: inherit; outline: none;
     transition: transform .18s ease, border-color .18s, box-shadow .18s, opacity .3s;
   }
   .card:hover { border-color: var(--line-strong); transform: translateY(-2px); box-shadow: 0 10px 24px rgba(0,0,0,.35); }
+  .card:focus-visible { box-shadow: 0 0 0 2px var(--mint); }
   .card .photo { position: relative; flex: 1 1 auto; min-height: 0; background: var(--navy-2); overflow: hidden; }
-  .card img { position: absolute; inset: 0; width: 100%; height: 100%; object-fit: cover; transition: filter .35s, opacity .35s, transform .35s; }
-  .card .meta { padding: var(--meta-pad, 8px 10px 9px); border-top: 2px solid var(--green); }
+  .card img { position: absolute; inset: 0; width: 100%; height: 100%; object-fit: cover; transition: filter .35s, opacity .35s; }
+  .card .meta { flex: none; height: var(--meta-h, auto); padding: var(--meta-pad, 8px 10px 9px); border-top: 2px solid var(--green); }
   .card .name { font-weight: 700; font-size: var(--name-size, 14px); letter-spacing: -.01em; line-height: 1.2; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
   .card .role { font-weight: 500; font-size: var(--role-size, 11px); color: var(--mint); line-height: 1.25; margin-top: 2px; display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; overflow: hidden; }
-  .card .meta { flex: none; height: var(--meta-h, auto); }
+
+  /* info button: "who is this?" */
+  .info {
+    position: absolute; top: 6px; right: 6px; z-index: 2;
+    width: 26px; height: 26px; border-radius: 50%; padding: 0;
+    display: grid; place-items: center;
+    background: rgba(6,24,36,.78); color: var(--white); border: 1px solid rgba(138,208,155,.55);
+    font: 700 13px/1 Georgia, 'Times New Roman', serif; font-style: italic;
+    transition: background .15s, transform .15s;
+  }
+  .info:hover { background: var(--green); color: var(--ink); transform: scale(1.08); }
 
   .card.out { opacity: .55; }
   .card.out img { filter: grayscale(1) brightness(.45); }
   .card.out .meta { border-top-color: rgba(255,255,255,.15); }
   .card.out .name, .card.out .role { color: var(--muted); }
-  .card .stamp {
-    position: absolute; inset: 0; display: grid; place-items: center; opacity: 0; transition: opacity .3s;
-  }
+  .card .stamp { position: absolute; inset: 0; display: grid; place-items: center; opacity: 0; transition: opacity .3s; pointer-events: none; }
   .card .stamp svg { width: 46%; height: auto; }
   .card.out .stamp { opacity: 1; }
 
+  .card.picked { border-color: var(--green); box-shadow: 0 0 0 3px var(--green); }
+  .card.mine .photo::after { content: 'Your person'; position: absolute; left: 6px; bottom: 6px; font-size: 9px; font-weight: 800; letter-spacing: .1em; text-transform: uppercase; color: var(--ink); background: var(--mint); padding: 3px 7px; border-radius: 999px; }
+  body.concealed .card.mine .photo::after { content: none; }
   body.guessing .card:not(.out) { border-color: var(--green); box-shadow: 0 0 0 2px rgba(79,176,109,.35); }
   body.guessing .card:not(.out):hover { box-shadow: 0 0 0 3px var(--mint); }
-  body.guessing .card.out { pointer-events: none; }
 
   /* ---------- side panel ---------- */
   aside {
@@ -82,55 +94,83 @@
     background: linear-gradient(180deg, rgba(11,45,68,.92), rgba(11,45,68,.75));
     border: 1px solid var(--line); border-radius: 16px; padding: 16px;
   }
-  .mystery { display: flex; gap: 14px; align-items: center; }
-  .mystery .slot {
-    width: 74px; height: 88px; flex: none; border-radius: 10px; position: relative; overflow: hidden;
-    background: var(--ink); border: 1px dashed var(--line-strong); display: grid; place-items: center;
-  }
-  .mystery .slot .q { font-size: 40px; font-weight: 800; color: var(--mint); }
-  .mystery .slot img { position: absolute; inset: 0; width: 100%; height: 100%; object-fit: cover; }
-  .mystery h2 { margin: 2px 0 0; font-size: 16px; font-weight: 700; }
-  .mystery p { margin: 4px 0 0; font-size: 12px; color: var(--muted); line-height: 1.4; }
+  .step { display: flex; flex-direction: column; gap: 14px; min-height: 0; flex: 1 1 auto; }
+  .step h2 { margin: 4px 0 0; font-size: 18px; font-weight: 800; line-height: 1.25; text-wrap: balance; }
+  .step p.lead { margin: 0; font-size: 13px; color: var(--muted); line-height: 1.5; }
+
+  .person-slot { display: flex; gap: 12px; align-items: center; background: rgba(6,24,36,.55); border: 1px solid var(--line); border-radius: 12px; padding: 10px; }
+  .person-slot .ph { width: 64px; height: 76px; flex: none; border-radius: 9px; overflow: hidden; position: relative; background: var(--ink); border: 1px dashed var(--line-strong); display: grid; place-items: center; color: var(--mint); font-size: 30px; font-weight: 800; }
+  .person-slot .ph img { position: absolute; inset: 0; width: 100%; height: 100%; object-fit: cover; }
+  .person-slot .nm { font-weight: 700; font-size: 15px; }
+  .person-slot .rl { font-size: 12px; color: var(--mint); margin-top: 2px; }
+  .person-slot .empty-txt { font-size: 13px; color: var(--muted); }
+  .person-slot.secret .ph img { transition: filter .2s; }
+  .person-slot.concealed .ph img { filter: blur(10px) brightness(.5); }
+  .person-slot.concealed .nm, .person-slot.concealed .rl { filter: blur(6px); user-select: none; }
+  .linkbtn { background: none; border: 0; color: var(--mint); font-size: 11px; font-weight: 700; letter-spacing: .08em; text-transform: uppercase; padding: 4px 0; margin-top: 4px; }
+  .linkbtn:hover { color: var(--white); }
+
+  .stepper { display: flex; align-items: center; justify-content: space-between; gap: 10px; background: rgba(6,24,36,.55); border: 1px solid var(--line); border-radius: 12px; padding: 10px 12px; }
+  .stepper .lbl { font-size: 12px; font-weight: 600; color: var(--muted); }
+  .stepper .ctl { display: flex; align-items: center; gap: 8px; }
+  .stepper button { width: 30px; height: 30px; border-radius: 50%; border: 1px solid var(--line-strong); background: transparent; color: var(--white); font-size: 18px; font-weight: 700; line-height: 1; }
+  .stepper button:hover { border-color: var(--mint); color: var(--mint); }
+  .stepper .val { font-weight: 800; font-size: 16px; min-width: 64px; text-align: center; font-variant-numeric: tabular-nums; }
+
+  .timer { text-align: center; background: rgba(6,24,36,.55); border: 1px solid var(--line); border-radius: 12px; padding: 12px; }
+  .timer .clock { font-size: 44px; font-weight: 800; line-height: 1; letter-spacing: -.02em; font-variant-numeric: tabular-nums; }
+  .timer.low .clock { color: #f2b45a; }
+  .timer.done .clock { color: var(--danger); }
+  .timer .bar { height: 4px; border-radius: 2px; background: rgba(255,255,255,.1); margin: 10px 0; overflow: hidden; }
+  .timer .bar i { display: block; height: 100%; background: var(--green); width: 100%; transition: width .9s linear; }
+  .timer .row { display: flex; gap: 8px; justify-content: center; }
+  .timer .btn { padding: 8px 14px; font-size: 11px; }
 
   .section-title { display: flex; justify-content: space-between; align-items: baseline; }
-  .section-title .count { font-size: 11px; font-weight: 600; color: var(--muted); }
-  #questions { flex: 1 1 auto; min-height: 0; overflow-y: auto; display: flex; flex-direction: column; gap: 6px; padding-right: 4px; margin-right: -6px; }
-  #questions::-webkit-scrollbar { width: 6px; }
-  #questions::-webkit-scrollbar-thumb { background: var(--line-strong); border-radius: 3px; }
-  .qbtn {
-    display: flex; align-items: center; gap: 10px; width: 100%;
-    background: rgba(6,24,36,.55); color: var(--white); border: 1px solid var(--line); border-radius: 10px;
-    padding: 9px 11px; font-size: 12.5px; font-weight: 600; text-align: left; line-height: 1.35;
-    transition: border-color .15s, background .15s;
-  }
-  .qbtn:hover:not(:disabled) { border-color: var(--green); background: rgba(79,176,109,.12); }
-  .qbtn:disabled { cursor: default; }
-  .qbtn .ans { margin-left: auto; flex: none; font-size: 10px; font-weight: 800; letter-spacing: .1em; padding: 4px 8px; border-radius: 999px; }
-  .qbtn .ans.yes { background: var(--green); color: var(--ink); }
-  .qbtn .ans.no { background: transparent; color: var(--white); border: 1px solid rgba(255,255,255,.5); }
-  .qbtn.asked { background: rgba(79,176,109,.08); }
-  .qbtn.locked:not(.asked) { opacity: .35; }
+  #examples { flex: 1 1 auto; min-height: 0; overflow-y: auto; margin: 0; padding: 0 4px 0 0; list-style: none; display: flex; flex-direction: column; gap: 6px; }
+  #examples::-webkit-scrollbar { width: 6px; }
+  #examples::-webkit-scrollbar-thumb { background: var(--line-strong); border-radius: 3px; }
+  #examples li { font-size: 12.5px; font-weight: 600; line-height: 1.35; padding: 8px 10px; border-radius: 9px; background: rgba(6,24,36,.45); border: 1px solid var(--line); }
 
-  .actions { display: grid; gap: 8px; }
+  .actions { display: grid; gap: 8px; margin-top: auto; }
   .actions .btn { width: 100%; padding: 12px; }
-  #hint { font-size: 12px; color: var(--muted); text-align: center; min-height: 16px; margin: 0; }
+  .hint { font-size: 12px; color: var(--muted); text-align: center; min-height: 16px; margin: 0; }
 
-  /* ---------- result modal ---------- */
-  #modal { position: fixed; inset: 0; z-index: 10; display: none; place-items: center; background: rgba(6,24,36,.82); backdrop-filter: blur(4px); }
-  #modal.show { display: grid; }
-  .result {
-    width: min(440px, 92vw); text-align: center; padding: 28px 28px 24px; border-radius: 20px;
-    background: var(--navy); border: 1px solid var(--line-strong); position: relative; overflow: hidden;
-  }
-  .result .portrait { width: 150px; height: 180px; margin: 14px auto 14px; border-radius: 14px; overflow: hidden; border: 3px solid var(--green); }
-  .result .portrait img { width: 100%; height: 100%; object-fit: cover; }
-  .result h3 { margin: 6px 0 0; font-size: 26px; font-weight: 800; }
-  .result .who { font-size: 18px; font-weight: 700; }
-  .result .role { font-size: 13px; color: var(--mint); margin-top: 2px; }
-  .result .msg { font-size: 13px; color: var(--muted); margin: 12px 0 18px; }
+  /* ---------- modals ---------- */
+  .modal { position: fixed; inset: 0; z-index: 10; display: none; place-items: center; padding: 16px; background: rgba(6,24,36,.82); backdrop-filter: blur(4px); }
+  .modal.show { display: grid; }
+  .sheet { position: relative; width: min(460px, 100%); max-height: calc(100vh - 32px); overflow-y: auto; border-radius: 20px; background: var(--navy); border: 1px solid var(--line-strong); padding: 26px; }
+  .sheet .x { position: absolute; top: 12px; right: 12px; width: 32px; height: 32px; border-radius: 50%; border: 1px solid var(--line-strong); background: transparent; color: var(--white); font-size: 18px; line-height: 1; }
+  .sheet .x:hover { border-color: var(--mint); color: var(--mint); }
 
-  .empty { display: grid; place-items: center; height: 100%; color: var(--muted); text-align: center; }
+  .bio { display: grid; grid-template-columns: 130px minmax(0, 1fr); gap: 18px; align-items: start; }
+  .bio .pic { width: 130px; height: 160px; border-radius: 12px; overflow: hidden; border: 2px solid var(--green); }
+  .bio .pic img { width: 100%; height: 100%; object-fit: cover; }
+  .bio h3 { margin: 4px 0 2px; font-size: 22px; font-weight: 800; line-height: 1.2; }
+  .bio .rl { color: var(--mint); font-size: 13px; font-weight: 600; }
+  .bio ul { margin: 16px 0 0; padding-left: 18px; font-size: 14px; line-height: 1.55; display: grid; gap: 6px; grid-column: 1 / -1; }
+  .bio .src { grid-column: 1 / -1; font-size: 12px; color: var(--muted); margin-top: 6px; }
+  .bio .src a { color: var(--mint); }
 
+  .howto h3 { margin: 6px 0 14px; font-size: 22px; font-weight: 800; }
+  .howto ol { margin: 0; padding-left: 20px; display: grid; gap: 9px; font-size: 14px; line-height: 1.5; }
+  .howto ol b { color: var(--mint); }
+
+  .result { text-align: center; }
+  .result h3 { margin: 6px 0 16px; font-size: 24px; font-weight: 800; }
+  .duo { display: grid; grid-template-columns: 1fr 1fr; gap: 14px; }
+  .duo .who { background: rgba(6,24,36,.55); border: 1px solid var(--line); border-radius: 14px; padding: 12px; }
+  .duo .who .pic { width: 100%; aspect-ratio: 4 / 5; border-radius: 10px; overflow: hidden; margin: 8px 0; }
+  .duo .who .pic img { width: 100%; height: 100%; object-fit: cover; }
+  .duo .who .nm { font-weight: 700; font-size: 15px; }
+  .duo .who .rl { font-size: 12px; color: var(--mint); }
+  .result .msg { font-size: 14px; color: var(--muted); margin: 16px 0; line-height: 1.5; }
+  .result .row { display: flex; gap: 10px; justify-content: center; flex-wrap: wrap; }
+
+  .timesup { text-align: center; }
+  .timesup .big { font-size: 56px; font-weight: 800; color: var(--danger); line-height: 1; margin: 8px 0; }
+
+  @media (prefers-reduced-motion: reduce) { * { transition: none !important; } }
   @media (max-width: 900px) {
     html, body { overflow: auto; height: auto; }
     main { grid-template-columns: 1fr; }
@@ -153,48 +193,137 @@
     </div>
     <div class="stats">
       <div class="stat"><div class="k">Round</div><div class="v" id="s-round">1</div></div>
-      <div class="stat"><div class="k">Questions</div><div class="v"><em id="s-used">0</em> / <span id="s-max">6</span></div></div>
       <div class="stat"><div class="k">Remaining</div><div class="v"><em id="s-left">0</em> / <span id="s-total">0</span></div></div>
-      <div class="stat"><div class="k">Wins</div><div class="v" id="s-wins">0</div></div>
+      <div class="stat"><div class="k">Correct guesses</div><div class="v" id="s-wins">0</div></div>
     </div>
-    <button class="btn btn-ghost" id="newGame">New game</button>
+    <div class="head-actions">
+      <button class="btn btn-ghost" id="howBtn">How to play</button>
+      <button class="btn btn-ghost" id="newRound">New round</button>
+    </div>
   </header>
 
   <main>
     <section id="board"><div id="grid"></div></section>
 
     <aside>
-      <div class="mystery">
-        <div class="slot" id="slot"><span class="q">?</span></div>
+      <!-- Step 1: choose your secret person -->
+      <div class="step" id="step-pick">
         <div>
-          <div class="eyebrow">Mystery professional</div>
-          <h2>Who is it?</h2>
-          <p id="intro">Ask up to 6 questions, then make your guess.</p>
+          <div class="eyebrow">Step 1 · Your team</div>
+          <h2>Choose your secret person</h2>
+        </div>
+        <p class="lead">Pick one person from the board without letting the other team see. They'll try to guess who it is. Click the <b>i</b> on any card to learn about that person.</p>
+        <div class="person-slot" id="pickSlot"><div class="ph">?</div><div class="empty-txt">Click a card to choose.</div></div>
+        <div class="stepper">
+          <span class="lbl">Time to ask questions</span>
+          <span class="ctl">
+            <button id="minus" aria-label="Less time">−</button>
+            <span class="val" id="mins">5 min</span>
+            <button id="plus" aria-label="More time">+</button>
+          </span>
+        </div>
+        <div class="actions">
+          <button class="btn btn-primary" id="lockPick" disabled>Lock in our person</button>
         </div>
       </div>
 
-      <div class="section-title">
-        <div class="eyebrow">Ask a question</div>
-        <div class="count" id="q-count"></div>
-      </div>
-      <div id="questions"></div>
-
-      <div class="actions">
-        <p id="hint"></p>
-        <button class="btn btn-primary" id="guessBtn">Make your guess</button>
+      <!-- Step 2: ask questions -->
+      <div class="step hidden" id="step-play">
+        <div>
+          <div class="eyebrow">Your secret person</div>
+          <div class="person-slot secret" id="mySlot" style="margin-top:8px"></div>
+        </div>
+        <div class="timer" id="timer">
+          <div class="clock" id="clock">5:00</div>
+          <div class="bar"><i id="bar"></i></div>
+          <div class="row">
+            <button class="btn btn-primary" id="startBtn">Start timer</button>
+            <button class="btn btn-ghost" id="addMin">+1 min</button>
+          </div>
+        </div>
+        <div class="section-title">
+          <div class="eyebrow">Example questions</div>
+        </div>
+        <ul id="examples"></ul>
+        <div class="actions">
+          <p class="hint" id="hint"></p>
+          <button class="btn btn-primary" id="guessBtn">Lock in our guess</button>
+        </div>
       </div>
     </aside>
   </main>
 
-  <div id="modal" role="dialog" aria-modal="true">
-    <div class="result">
-      <div class="eyebrow" id="r-eyebrow">Result</div>
-      <h3 id="r-title"></h3>
-      <div class="portrait"><img id="r-img" alt=""></div>
-      <div class="who" id="r-name"></div>
-      <div class="role" id="r-role"></div>
-      <p class="msg" id="r-msg"></p>
-      <button class="btn btn-primary" id="again">Play again</button>
+  <!-- About a person -->
+  <div class="modal" id="infoModal" role="dialog" aria-modal="true" aria-labelledby="bioName">
+    <div class="sheet">
+      <button class="x" data-close aria-label="Close">×</button>
+      <div class="bio">
+        <div class="pic"><img id="bioImg" alt=""></div>
+        <div>
+          <div class="eyebrow">Who is this?</div>
+          <h3 id="bioName"></h3>
+          <div class="rl" id="bioRole"></div>
+        </div>
+        <ul id="bioFacts"></ul>
+        <div class="src" id="bioSrc"></div>
+      </div>
+    </div>
+  </div>
+
+  <!-- How to play -->
+  <div class="modal" id="howModal" role="dialog" aria-modal="true" aria-labelledby="howTitle">
+    <div class="sheet howto">
+      <button class="x" data-close aria-label="Close">×</button>
+      <div class="eyebrow">Team vs team</div>
+      <h3 id="howTitle">How to play</h3>
+      <ol>
+        <li>Each team plays on its <b>own laptop</b> with this game open.</li>
+        <li>Each team <b>secretly chooses one person</b> from the board and locks them in. That's who the other team has to guess.</li>
+        <li>Don't know someone? Click the <b>i</b> on their card for a short bio and a few facts.</li>
+        <li>Start the timer. Teams <b>take turns</b> asking the other team one yes-or-no question at a time. There's no limit on how many questions you ask.</li>
+        <li>Click a card to <b>rule that person out</b>. Click it again to bring them back.</li>
+        <li>Each team gets <b id="howMins">5 minutes</b> in total to ask questions.</li>
+        <li>When you're sure, or when time runs out, <b>lock in your guess</b>.</li>
+        <li>Both teams reveal their secret person. If both teams guess correctly, <b>both teams win</b>.</li>
+      </ol>
+    </div>
+  </div>
+
+  <!-- Time's up -->
+  <div class="modal" id="upModal" role="dialog" aria-modal="true">
+    <div class="sheet timesup">
+      <div class="eyebrow">Time's up</div>
+      <div class="big">0:00</div>
+      <p class="hint" style="margin:0 0 16px">No more questions. Pick who you think the other team chose.</p>
+      <button class="btn btn-primary" id="upGuess">Lock in our guess</button>
+    </div>
+  </div>
+
+  <!-- Result -->
+  <div class="modal" id="resultModal" role="dialog" aria-modal="true" aria-labelledby="resTitle">
+    <div class="sheet result">
+      <div class="eyebrow">Reveal</div>
+      <h3 id="resTitle">Did you guess right?</h3>
+      <div class="duo">
+        <div class="who">
+          <div class="eyebrow">Our guess</div>
+          <div class="pic"><img id="resGuessImg" alt=""></div>
+          <div class="nm" id="resGuessName"></div><div class="rl" id="resGuessRole"></div>
+        </div>
+        <div class="who">
+          <div class="eyebrow">Our secret person</div>
+          <div class="pic"><img id="resMineImg" alt=""></div>
+          <div class="nm" id="resMineName"></div><div class="rl" id="resMineRole"></div>
+        </div>
+      </div>
+      <p class="msg" id="resMsg">Show your secret person to the other team, and ask them to reveal theirs.</p>
+      <div class="row" id="resAsk">
+        <button class="btn btn-primary" id="gotIt">We guessed right</button>
+        <button class="btn btn-ghost" id="missed">We guessed wrong</button>
+      </div>
+      <div class="row hidden" id="resNext">
+        <button class="btn btn-primary" id="again">Play next round</button>
+      </div>
     </div>
   </div>
 

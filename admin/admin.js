@@ -144,6 +144,7 @@
         <div class="fields">
           <div><label class="f">Name</label><input class="input sm" data-k="name" value="${esc(p.name)}"></div>
           <div><label class="f">Position</label><input class="input sm" data-k="position" value="${esc(p.position)}"></div>
+          <div><label class="f">Facts players see (one per line)</label><textarea class="input sm" data-k="facts" rows="4" placeholder="Two or three short facts">${esc((p.facts || []).join('\n'))}</textarea></div>
           <div>
             <label class="f">Photo</label>
             <input class="input sm" data-k="lookup" placeholder="Wikipedia name or link" value="${esc(p.name)}">
@@ -166,7 +167,8 @@
   $('#people').addEventListener('input', e => {
     const el = e.target, row = el.closest('.person'); if (!row || !el.dataset.k || el.dataset.k === 'lookup') return;
     const p = data.people[row.dataset.i];
-    p[el.dataset.k] = el.dataset.k === 'imageY' ? Number(el.value) : el.value;
+    const k = el.dataset.k;
+    p[k] = k === 'imageY' ? Number(el.value) : k === 'facts' ? el.value.split('\n').map(f => f.trim()).filter(Boolean) : el.value;
     if (el.dataset.k === 'imageY') { const img = row.querySelector('.thumb img'); if (img) img.style.objectPosition = `50% ${el.value}%`; }
     setDirty();
   });
@@ -184,7 +186,6 @@
     if (act === 'delete') {
       if (!confirm(`Remove ${p.name || 'this person'}?`)) return;
       data.people.splice(i, 1);
-      data.questions.forEach(q => (q.yes = (q.yes || []).filter(id => id !== p.id)));
       renderPeople(); setDirty(); return;
     }
     if (act === 'left' || act === 'right') {
@@ -217,7 +218,7 @@
   });
 
   $('#addPerson').addEventListener('click', () => {
-    data.people.push({ id: uid('p', 'new'), name: '', position: '', image: '', imageY: 20, source: '' });
+    data.people.push({ id: uid('p', 'new'), name: '', position: '', image: '', imageY: 20, source: '', facts: [] });
     renderPeople(); setDirty();
     const last = $('#people').lastElementChild; last.scrollIntoView({ behavior: 'smooth', block: 'center' });
     last.querySelector('[data-k=name]').focus();
@@ -225,24 +226,16 @@
 
   // ---------- questions ----------
   function renderQuestions() {
-    $('#questions').innerHTML = data.questions.map((q, i) => {
-      const yes = new Set(q.yes || []);
-      return `
+    $('#questions').innerHTML = data.questions.map((q, i) => `
       <div class="question" data-i="${i}">
         <div class="qhead">
           <span class="num">${i + 1}</span>
-          <input class="input sm" data-k="text" value="${esc(q.text)}" placeholder="Is your person…?">
+          <input class="input sm" data-k="text" value="${esc(q.text)}" placeholder="Did they…?">
           <button class="linkish" data-act="up" ${i === 0 ? 'disabled' : ''}>Up</button>
           <button class="linkish" data-act="down" ${i === data.questions.length - 1 ? 'disabled' : ''}>Down</button>
           <button class="linkish danger" data-act="delete">Remove</button>
         </div>
-        <div class="qhint"><b>${yes.size}</b> answer YES · ${data.people.length - yes.size} answer NO</div>
-        <div class="chips">${data.people.map(p => `
-          <button class="chip ${yes.has(p.id) ? 'yes' : ''}" data-id="${esc(p.id)}" aria-pressed="${yes.has(p.id)}">
-            ${p.image ? `<img src="${esc(src(p.image))}" alt="" style="object-position:50% ${Number(p.imageY ?? 20)}%">` : '<span class="ph"></span>'}${esc(p.name || 'Unnamed')}
-          </button>`).join('')}</div>
-      </div>`;
-    }).join('') || '<p class="note">No questions yet.</p>';
+      </div>`).join('') || '<p class="note">No example questions yet.</p>';
   }
 
   $('#questions').addEventListener('input', e => {
@@ -251,16 +244,7 @@
   });
   $('#questions').addEventListener('click', e => {
     const row = e.target.closest('.question'); if (!row) return;
-    const i = Number(row.dataset.i), q = data.questions[i];
-    const chip = e.target.closest('.chip');
-    if (chip) {
-      const set = new Set(q.yes || []);
-      set.has(chip.dataset.id) ? set.delete(chip.dataset.id) : set.add(chip.dataset.id);
-      q.yes = [...set];
-      chip.classList.toggle('yes'); chip.setAttribute('aria-pressed', set.has(chip.dataset.id));
-      row.querySelector('.qhint').innerHTML = `<b>${set.size}</b> answer YES · ${data.people.length - set.size} answer NO`;
-      setDirty(); return;
-    }
+    const i = Number(row.dataset.i);
     const b = e.target.closest('[data-act]'); if (!b) return;
     if (b.dataset.act === 'delete') { if (!confirm('Remove this question?')) return; data.questions.splice(i, 1); }
     if (b.dataset.act === 'up') [data.questions[i - 1], data.questions[i]] = [data.questions[i], data.questions[i - 1]];
@@ -268,7 +252,7 @@
     renderQuestions(); setDirty();
   });
   $('#addQuestion').addEventListener('click', () => {
-    data.questions.push({ id: uid('q', 'new'), text: '', yes: [] });
+    data.questions.push({ id: uid('q', 'new'), text: '' });
     renderQuestions(); setDirty();
     const last = $('#questions').lastElementChild; last.scrollIntoView({ behavior: 'smooth', block: 'center' });
     last.querySelector('input').focus();
@@ -278,13 +262,11 @@
   function renderSettings() {
     $('#s-title').value = data.settings.title || '';
     $('#s-edition').value = data.settings.edition || '';
-    $('#s-max').value = data.settings.maxQuestions || 6;
-    $('#s-auto').checked = data.settings.autoEliminate !== false;
+    $('#s-mins').value = data.settings.roundMinutes || 5;
   }
   $('#s-title').addEventListener('input', e => { data.settings.title = e.target.value; setDirty(); });
   $('#s-edition').addEventListener('input', e => { data.settings.edition = e.target.value; setDirty(); });
-  $('#s-max').addEventListener('input', e => { data.settings.maxQuestions = Math.max(1, Number(e.target.value) || 6); setDirty(); });
-  $('#s-auto').addEventListener('change', e => { data.settings.autoEliminate = e.target.checked; setDirty(); });
+  $('#s-mins').addEventListener('input', e => { data.settings.roundMinutes = Math.min(30, Math.max(1, Math.round(Number(e.target.value)) || 5)); setDirty(); });
 
   // ---------- save ----------
   $('#save').addEventListener('click', async () => {
@@ -293,7 +275,7 @@
     const btn = $('#save'); btn.disabled = true; btn.textContent = 'Saving…';
     try {
       const r = await gh('/contents/data/data.json', 'PUT', {
-        message: 'Update Guess Who people and questions',
+        message: 'Update Guess Who people, facts and questions',
         content: toB64(JSON.stringify(data, null, 2) + '\n'), sha: dataSha, branch: BRANCH,
       });
       dataSha = r.content.sha; setDirty(false);
