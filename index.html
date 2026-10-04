@@ -13,48 +13,66 @@
   html, body { height: 100%; overflow: hidden; }
   body {
     display: grid; grid-template-rows: auto 1fr;
-    background:
-      radial-gradient(1200px 600px at 100% 0%, rgba(79,176,109,.10), transparent 60%),
-      var(--ink);
+    background: radial-gradient(1200px 600px at 100% 0%, rgba(79,176,109,.10), transparent 60%), var(--ink);
     position: relative;
   }
   .hidden { display: none !important; }
-  /* brand ring motif, like the Congress 2026 poster */
   .rings { position: fixed; pointer-events: none; opacity: .14; z-index: 0; }
   .rings.tr { width: 520px; top: -260px; right: -200px; }
   .rings.bl { width: 420px; bottom: -230px; left: -230px; }
 
   /* ---------- header ---------- */
-  header {
-    position: relative; z-index: 1;
-    display: flex; align-items: center; gap: 22px;
-    padding: 12px 24px; border-bottom: 1px solid var(--line);
-  }
+  header { position: relative; z-index: 1; display: flex; align-items: center; gap: 20px; padding: 12px 24px; border-bottom: 1px solid var(--line); }
   header .logo { height: 38px; display: block; }
   header .divider { width: 1px; align-self: stretch; background: var(--line-strong); }
-  .title-block .eyebrow { margin-bottom: 2px; }
   .title-block h1 { margin: 0; font-size: 22px; font-weight: 800; letter-spacing: -.01em; line-height: 1.1; }
-  .stats { margin-left: auto; display: flex; gap: 26px; align-items: center; }
-  .stat { text-align: center; }
-  .stat .k { font-size: 10px; font-weight: 700; letter-spacing: .14em; text-transform: uppercase; color: var(--muted); }
-  .stat .v { font-size: 20px; font-weight: 800; color: var(--white); line-height: 1.2; font-variant-numeric: tabular-nums; }
-  .stat .v em { font-style: normal; color: var(--mint); }
-  .head-actions { display: flex; gap: 8px; }
+  .title-block .eyebrow { margin-bottom: 2px; }
+  .head-right { margin-left: auto; display: flex; align-items: center; gap: 14px; }
+  .code-chip { font-size: 11px; font-weight: 700; letter-spacing: .12em; text-transform: uppercase; color: var(--muted); }
+  .code-chip b { color: var(--white); font-size: 15px; letter-spacing: .18em; margin-left: 4px; }
 
-  /* ---------- main ---------- */
-  main {
-    position: relative; z-index: 1; min-height: 0;
-    display: grid; grid-template-columns: 1fr 330px; gap: 18px; padding: 16px 20px 16px 24px;
-  }
+  .players { display: flex; gap: 8px; }
+  .pchip { display: flex; align-items: center; gap: 10px; padding: 6px 12px 6px 8px; border-radius: 999px; border: 1px solid var(--line); background: rgba(11,45,68,.7); min-width: 0; }
+  .pchip.turn { border-color: var(--green); box-shadow: 0 0 0 2px rgba(79,176,109,.3); }
+  .pchip .seat { width: 26px; height: 26px; border-radius: 50%; display: grid; place-items: center; font-size: 12px; font-weight: 800; background: var(--navy-2); color: var(--mint); flex: none; position: relative; }
+  .pchip .seat::after { content: ''; position: absolute; right: -1px; bottom: -1px; width: 9px; height: 9px; border-radius: 50%; background: #5a6b77; border: 2px solid var(--navy); }
+  .pchip.online .seat::after { background: var(--green); }
+  .pchip .nm { font-weight: 700; font-size: 13px; max-width: 130px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+  .pchip .nm input { width: 120px; background: transparent; border: 0; border-bottom: 1px dashed var(--line-strong); color: var(--white); font: inherit; padding: 0; }
+  .pchip .nm input:focus { outline: none; border-bottom-color: var(--mint); }
+  .pchip .wins { font-size: 11px; color: var(--mint); font-weight: 700; white-space: nowrap; }
+  .pchip .you { font-size: 9px; font-weight: 800; letter-spacing: .1em; text-transform: uppercase; color: var(--ink); background: var(--mint); padding: 2px 6px; border-radius: 999px; }
+
+  /* ---------- home / lobby ---------- */
+  .center { position: relative; z-index: 1; display: grid; place-items: center; padding: 24px 16px; overflow-y: auto; }
+  .panel { width: min(760px, 100%); background: linear-gradient(180deg, rgba(11,45,68,.92), rgba(11,45,68,.75)); border: 1px solid var(--line); border-radius: 20px; padding: 32px; }
+  .panel h2 { margin: 6px 0 8px; font-size: 30px; font-weight: 800; line-height: 1.15; text-wrap: balance; }
+  .panel h2 span { color: var(--mint); }
+  .panel .lead { margin: 0 0 24px; color: var(--muted); font-size: 15px; line-height: 1.55; max-width: 60ch; }
+  .row { display: flex; gap: 12px; flex-wrap: wrap; align-items: center; }
+  .input { background: var(--ink); color: var(--white); border: 1px solid var(--line-strong); border-radius: 10px; padding: 11px 14px; font-size: 15px; font-weight: 600; min-width: 0; }
+  .input:focus { outline: none; border-color: var(--green); box-shadow: 0 0 0 3px rgba(79,176,109,.2); }
+  .input.code { width: 150px; text-transform: uppercase; letter-spacing: .2em; font-weight: 800; }
+  .or { color: var(--muted); font-size: 13px; font-weight: 600; }
+  .err { color: var(--danger); font-size: 13px; min-height: 18px; margin: 10px 0 0; }
+
+  .seats { display: grid; grid-template-columns: 1fr 1fr; gap: 16px; margin-top: 8px; }
+  .seat-card { border: 1px solid var(--line); border-radius: 16px; padding: 20px; background: rgba(6,24,36,.5); display: grid; gap: 12px; align-content: start; }
+  .seat-card .eyebrow { display: flex; justify-content: space-between; }
+  .seat-card .taken { font-size: 18px; font-weight: 800; }
+  .seat-card .sub { font-size: 13px; color: var(--muted); }
+  .seat-card .btn { width: 100%; }
+  .seat-card.mine { border-color: var(--green); }
+  .invite { margin-top: 20px; padding: 16px; border-radius: 14px; border: 1px dashed var(--line-strong); display: grid; gap: 8px; }
+  .invite .url { font-family: ui-monospace, Consolas, monospace; font-size: 13px; color: var(--white); word-break: break-all; user-select: all; }
+  .invite .lbl { font-size: 12px; color: var(--muted); }
+
+  /* ---------- game ---------- */
+  main { position: relative; z-index: 1; min-height: 0; display: grid; grid-template-columns: 1fr 350px; gap: 18px; padding: 16px 20px 16px 24px; }
   #board { min-width: 0; min-height: 0; position: relative; }
   #grid { display: grid; justify-content: center; align-content: center; height: 100%; }
 
-  .card {
-    position: relative; display: flex; flex-direction: column; cursor: pointer;
-    background: var(--navy); border: 1px solid var(--line); border-radius: var(--radius);
-    overflow: hidden; text-align: left; color: inherit; outline: none;
-    transition: transform .18s ease, border-color .18s, box-shadow .18s, opacity .3s;
-  }
+  .card { position: relative; display: flex; flex-direction: column; cursor: pointer; background: var(--navy); border: 1px solid var(--line); border-radius: var(--radius); overflow: hidden; color: inherit; outline: none; transition: transform .18s ease, border-color .18s, box-shadow .18s, opacity .3s; }
   .card:hover { border-color: var(--line-strong); transform: translateY(-2px); box-shadow: 0 10px 24px rgba(0,0,0,.35); }
   .card:focus-visible { box-shadow: 0 0 0 2px var(--mint); }
   .card .photo { position: relative; flex: 1 1 auto; min-height: 0; background: var(--navy-2); overflow: hidden; }
@@ -62,18 +80,8 @@
   .card .meta { flex: none; height: var(--meta-h, auto); padding: var(--meta-pad, 8px 10px 9px); border-top: 2px solid var(--green); }
   .card .name { font-weight: 700; font-size: var(--name-size, 14px); letter-spacing: -.01em; line-height: 1.2; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
   .card .role { font-weight: 500; font-size: var(--role-size, 11px); color: var(--mint); line-height: 1.25; margin-top: 2px; display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; overflow: hidden; }
-
-  /* info button: "who is this?" */
-  .info {
-    position: absolute; top: 6px; right: 6px; z-index: 2;
-    width: 26px; height: 26px; border-radius: 50%; padding: 0;
-    display: grid; place-items: center;
-    background: rgba(6,24,36,.78); color: var(--white); border: 1px solid rgba(138,208,155,.55);
-    font: 700 13px/1 Georgia, 'Times New Roman', serif; font-style: italic;
-    transition: background .15s, transform .15s;
-  }
+  .info { position: absolute; top: 6px; right: 6px; z-index: 2; width: 26px; height: 26px; border-radius: 50%; padding: 0; display: grid; place-items: center; background: rgba(6,24,36,.78); color: var(--white); border: 1px solid rgba(138,208,155,.55); font: italic 700 13px/1 Georgia, 'Times New Roman', serif; transition: background .15s, transform .15s; }
   .info:hover { background: var(--green); color: var(--ink); transform: scale(1.08); }
-
   .card.out { opacity: .55; }
   .card.out img { filter: grayscale(1) brightness(.45); }
   .card.out .meta { border-top-color: rgba(255,255,255,.15); }
@@ -81,68 +89,85 @@
   .card .stamp { position: absolute; inset: 0; display: grid; place-items: center; opacity: 0; transition: opacity .3s; pointer-events: none; }
   .card .stamp svg { width: 46%; height: auto; }
   .card.out .stamp { opacity: 1; }
-
   .card.picked { border-color: var(--green); box-shadow: 0 0 0 3px var(--green); }
   .card.mine .photo::after { content: 'Your person'; position: absolute; left: 6px; bottom: 6px; font-size: 9px; font-weight: 800; letter-spacing: .1em; text-transform: uppercase; color: var(--ink); background: var(--mint); padding: 3px 7px; border-radius: 999px; }
   body.concealed .card.mine .photo::after { content: none; }
   body.guessing .card:not(.out) { border-color: var(--green); box-shadow: 0 0 0 2px rgba(79,176,109,.35); }
   body.guessing .card:not(.out):hover { box-shadow: 0 0 0 3px var(--mint); }
 
-  /* ---------- side panel ---------- */
-  aside {
-    min-height: 0; display: flex; flex-direction: column; gap: 14px;
-    background: linear-gradient(180deg, rgba(11,45,68,.92), rgba(11,45,68,.75));
-    border: 1px solid var(--line); border-radius: 16px; padding: 16px;
-  }
-  .step { display: flex; flex-direction: column; gap: 14px; min-height: 0; flex: 1 1 auto; }
+  aside { min-height: 0; display: flex; flex-direction: column; gap: 12px; background: linear-gradient(180deg, rgba(11,45,68,.92), rgba(11,45,68,.75)); border: 1px solid var(--line); border-radius: 16px; padding: 14px; }
+  .step { display: flex; flex-direction: column; gap: 12px; min-height: 0; flex: 1 1 auto; }
   .step h2 { margin: 4px 0 0; font-size: 18px; font-weight: 800; line-height: 1.25; text-wrap: balance; }
   .step p.lead { margin: 0; font-size: 13px; color: var(--muted); line-height: 1.5; }
 
-  .person-slot { display: flex; gap: 12px; align-items: center; background: rgba(6,24,36,.55); border: 1px solid var(--line); border-radius: 12px; padding: 10px; }
-  .person-slot .ph { width: 64px; height: 76px; flex: none; border-radius: 9px; overflow: hidden; position: relative; background: var(--ink); border: 1px dashed var(--line-strong); display: grid; place-items: center; color: var(--mint); font-size: 30px; font-weight: 800; }
+  .person-slot { display: flex; gap: 12px; align-items: center; background: rgba(6,24,36,.55); border: 1px solid var(--line); border-radius: 12px; padding: 8px; }
+  .person-slot .ph { width: 52px; height: 62px; flex: none; border-radius: 8px; overflow: hidden; position: relative; background: var(--ink); border: 1px dashed var(--line-strong); display: grid; place-items: center; color: var(--mint); font-size: 26px; font-weight: 800; }
   .person-slot .ph img { position: absolute; inset: 0; width: 100%; height: 100%; object-fit: cover; }
-  .person-slot .nm { font-weight: 700; font-size: 15px; }
-  .person-slot .rl { font-size: 12px; color: var(--mint); margin-top: 2px; }
+  .person-slot .nm { font-weight: 700; font-size: 14px; }
+  .person-slot .rl { font-size: 12px; color: var(--mint); margin-top: 1px; }
   .person-slot .empty-txt { font-size: 13px; color: var(--muted); }
-  .person-slot.secret .ph img { transition: filter .2s; }
+  .person-slot .grow { flex: 1; min-width: 0; }
   .person-slot.concealed .ph img { filter: blur(10px) brightness(.5); }
   .person-slot.concealed .nm, .person-slot.concealed .rl { filter: blur(6px); user-select: none; }
-  .linkbtn { background: none; border: 0; color: var(--mint); font-size: 11px; font-weight: 700; letter-spacing: .08em; text-transform: uppercase; padding: 4px 0; margin-top: 4px; }
+  .linkbtn { background: none; border: 0; color: var(--mint); font-size: 11px; font-weight: 700; letter-spacing: .08em; text-transform: uppercase; padding: 4px 0; }
   .linkbtn:hover { color: var(--white); }
 
-  .stepper { display: flex; align-items: center; justify-content: space-between; gap: 10px; background: rgba(6,24,36,.55); border: 1px solid var(--line); border-radius: 12px; padding: 10px 12px; }
+  .status { display: grid; gap: 6px; }
+  .status div { display: flex; justify-content: space-between; align-items: center; font-size: 13px; font-weight: 600; padding: 8px 10px; border-radius: 10px; background: rgba(6,24,36,.45); border: 1px solid var(--line); }
+  .pill { font-size: 10px; font-weight: 800; letter-spacing: .1em; text-transform: uppercase; padding: 3px 8px; border-radius: 999px; border: 1px solid var(--line-strong); color: var(--muted); }
+  .pill.ok { background: var(--green); border-color: var(--green); color: var(--ink); }
+
+  .stepper { display: flex; align-items: center; justify-content: space-between; gap: 10px; background: rgba(6,24,36,.55); border: 1px solid var(--line); border-radius: 12px; padding: 8px 12px; }
   .stepper .lbl { font-size: 12px; font-weight: 600; color: var(--muted); }
   .stepper .ctl { display: flex; align-items: center; gap: 8px; }
-  .stepper button { width: 30px; height: 30px; border-radius: 50%; border: 1px solid var(--line-strong); background: transparent; color: var(--white); font-size: 18px; font-weight: 700; line-height: 1; }
+  .stepper button { width: 28px; height: 28px; border-radius: 50%; border: 1px solid var(--line-strong); background: transparent; color: var(--white); font-size: 17px; font-weight: 700; line-height: 1; }
   .stepper button:hover { border-color: var(--mint); color: var(--mint); }
-  .stepper .val { font-weight: 800; font-size: 16px; min-width: 64px; text-align: center; font-variant-numeric: tabular-nums; }
+  .stepper .val { font-weight: 800; font-size: 15px; min-width: 56px; text-align: center; font-variant-numeric: tabular-nums; }
 
-  .timer { text-align: center; background: rgba(6,24,36,.55); border: 1px solid var(--line); border-radius: 12px; padding: 12px; }
-  .timer .clock { font-size: 44px; font-weight: 800; line-height: 1; letter-spacing: -.02em; font-variant-numeric: tabular-nums; }
+  .timer { display: flex; align-items: center; gap: 12px; background: rgba(6,24,36,.55); border: 1px solid var(--line); border-radius: 12px; padding: 10px 12px; position: relative; overflow: hidden; }
+  .timer .clock { font-size: 32px; font-weight: 800; line-height: 1; letter-spacing: -.02em; font-variant-numeric: tabular-nums; }
   .timer.low .clock { color: #f2b45a; }
   .timer.done .clock { color: var(--danger); }
-  .timer .bar { height: 4px; border-radius: 2px; background: rgba(255,255,255,.1); margin: 10px 0; overflow: hidden; }
-  .timer .bar i { display: block; height: 100%; background: var(--green); width: 100%; transition: width .9s linear; }
-  .timer .row { display: flex; gap: 8px; justify-content: center; }
-  .timer .btn { padding: 8px 14px; font-size: 11px; }
+  .timer .bar { position: absolute; left: 0; bottom: 0; height: 3px; background: var(--green); transition: width .9s linear; }
+  .timer .tbtns { margin-left: auto; display: flex; gap: 6px; }
+  .timer .btn { padding: 7px 12px; font-size: 10.5px; }
 
-  .section-title { display: flex; justify-content: space-between; align-items: baseline; }
-  #examples { flex: 1 1 auto; min-height: 0; overflow-y: auto; margin: 0; padding: 0 4px 0 0; list-style: none; display: flex; flex-direction: column; gap: 6px; }
-  #examples::-webkit-scrollbar { width: 6px; }
-  #examples::-webkit-scrollbar-thumb { background: var(--line-strong); border-radius: 3px; }
-  #examples li { font-size: 12.5px; font-weight: 600; line-height: 1.35; padding: 8px 10px; border-radius: 9px; background: rgba(6,24,36,.45); border: 1px solid var(--line); }
+  .turn { font-size: 13px; font-weight: 700; padding: 9px 12px; border-radius: 10px; text-align: center; background: rgba(6,24,36,.45); border: 1px solid var(--line); }
+  .turn.mine { background: rgba(79,176,109,.16); border-color: var(--green); color: var(--mint); }
+
+  .askbox { display: grid; gap: 8px; }
+  .askbox .row { gap: 8px; flex-wrap: nowrap; }
+  .askbox .input { flex: 1; font-size: 13px; padding: 9px 11px; }
+  .askbox .btn { padding: 9px 14px; }
+  .askbox select { font-size: 12px; padding: 7px 9px; color: var(--muted); }
+  .incoming { border: 1px solid var(--green); background: rgba(79,176,109,.12); border-radius: 12px; padding: 10px 12px; display: grid; gap: 8px; }
+  .incoming .q { font-size: 14px; font-weight: 700; line-height: 1.35; }
+  .incoming .row .btn { flex: 1; }
+  .waiting { font-size: 13px; color: var(--muted); text-align: center; padding: 8px; }
+
+  #log { flex: 1 1 auto; min-height: 40px; overflow-y: auto; margin: 0; padding: 0 4px 0 0; list-style: none; display: flex; flex-direction: column; gap: 6px; }
+  #log::-webkit-scrollbar { width: 6px; }
+  #log::-webkit-scrollbar-thumb { background: var(--line-strong); border-radius: 3px; }
+  #log li { display: flex; gap: 8px; align-items: flex-start; font-size: 12.5px; line-height: 1.35; padding: 7px 9px; border-radius: 9px; background: rgba(6,24,36,.45); border: 1px solid var(--line); }
+  #log li .who { flex: none; font-weight: 800; font-size: 10px; letter-spacing: .06em; text-transform: uppercase; color: var(--muted); margin-top: 2px; }
+  #log li .txt { flex: 1; font-weight: 600; }
+  #log li .ans { flex: none; font-size: 10px; font-weight: 800; letter-spacing: .1em; padding: 3px 7px; border-radius: 999px; }
+  #log li .ans.yes { background: var(--green); color: var(--ink); }
+  #log li .ans.no { border: 1px solid rgba(255,255,255,.5); }
+  #log li .ans.wait { color: var(--muted); border: 1px dashed var(--line-strong); }
+  #log .empty { justify-content: center; color: var(--muted); font-weight: 600; }
 
   .actions { display: grid; gap: 8px; margin-top: auto; }
   .actions .btn { width: 100%; padding: 12px; }
-  .hint { font-size: 12px; color: var(--muted); text-align: center; min-height: 16px; margin: 0; }
+  .hint { font-size: 12px; color: var(--muted); text-align: center; margin: 0; }
 
   /* ---------- modals ---------- */
   .modal { position: fixed; inset: 0; z-index: 10; display: none; place-items: center; padding: 16px; background: rgba(6,24,36,.82); backdrop-filter: blur(4px); }
   .modal.show { display: grid; }
   .sheet { position: relative; width: min(460px, 100%); max-height: calc(100vh - 32px); overflow-y: auto; border-radius: 20px; background: var(--navy); border: 1px solid var(--line-strong); padding: 26px; }
+  .sheet.wide { width: min(560px, 100%); }
   .sheet .x { position: absolute; top: 12px; right: 12px; width: 32px; height: 32px; border-radius: 50%; border: 1px solid var(--line-strong); background: transparent; color: var(--white); font-size: 18px; line-height: 1; }
   .sheet .x:hover { border-color: var(--mint); color: var(--mint); }
-
   .bio { display: grid; grid-template-columns: 130px minmax(0, 1fr); gap: 18px; align-items: start; }
   .bio .pic { width: 130px; height: 160px; border-radius: 12px; overflow: hidden; border: 2px solid var(--green); }
   .bio .pic img { width: 100%; height: 100%; object-fit: cover; }
@@ -151,38 +176,40 @@
   .bio ul { margin: 16px 0 0; padding-left: 18px; font-size: 14px; line-height: 1.55; display: grid; gap: 6px; grid-column: 1 / -1; }
   .bio .src { grid-column: 1 / -1; font-size: 12px; color: var(--muted); margin-top: 6px; }
   .bio .src a { color: var(--mint); }
-
   .howto h3 { margin: 6px 0 14px; font-size: 22px; font-weight: 800; }
   .howto ol { margin: 0; padding-left: 20px; display: grid; gap: 9px; font-size: 14px; line-height: 1.5; }
   .howto ol b { color: var(--mint); }
-
   .result { text-align: center; }
-  .result h3 { margin: 6px 0 16px; font-size: 24px; font-weight: 800; }
-  .duo { display: grid; grid-template-columns: 1fr 1fr; gap: 14px; }
-  .duo .who { background: rgba(6,24,36,.55); border: 1px solid var(--line); border-radius: 14px; padding: 12px; }
-  .duo .who .pic { width: 100%; aspect-ratio: 4 / 5; border-radius: 10px; overflow: hidden; margin: 8px 0; }
-  .duo .who .pic img { width: 100%; height: 100%; object-fit: cover; }
-  .duo .who .nm { font-weight: 700; font-size: 15px; }
-  .duo .who .rl { font-size: 12px; color: var(--mint); }
+  .result h3 { margin: 6px 0 16px; font-size: 26px; font-weight: 800; text-wrap: balance; }
+  .duo { display: grid; grid-template-columns: 1fr 1fr; gap: 14px; text-align: left; }
+  .duo .who { background: rgba(6,24,36,.55); border: 1px solid var(--line); border-radius: 14px; padding: 12px; display: grid; gap: 8px; }
+  .duo .who.win { border-color: var(--green); }
+  .duo .who .head { display: flex; justify-content: space-between; align-items: center; gap: 8px; }
+  .duo .who .head b { font-size: 14px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+  .duo .mini { display: flex; gap: 10px; align-items: center; }
+  .duo .mini img { width: 44px; height: 54px; border-radius: 8px; object-fit: cover; flex: none; }
+  .duo .mini .k { font-size: 10px; font-weight: 700; letter-spacing: .1em; text-transform: uppercase; color: var(--muted); }
+  .duo .mini .v { font-size: 13px; font-weight: 700; }
   .result .msg { font-size: 14px; color: var(--muted); margin: 16px 0; line-height: 1.5; }
-  .result .row { display: flex; gap: 10px; justify-content: center; flex-wrap: wrap; }
-
-  .timesup { text-align: center; }
-  .timesup .big { font-size: 56px; font-weight: 800; color: var(--danger); line-height: 1; margin: 8px 0; }
+  .timesup .big { font-size: 56px; font-weight: 800; color: var(--danger); line-height: 1; margin: 8px 0; text-align: center; }
+  #toast { position: fixed; bottom: 22px; left: 50%; transform: translateX(-50%) translateY(20px); opacity: 0; transition: .25s; background: var(--green); color: var(--ink); font-weight: 700; font-size: 13px; padding: 10px 18px; border-radius: 999px; pointer-events: none; z-index: 20; }
+  #toast.show { opacity: 1; transform: translateX(-50%); }
+  #conn { position: fixed; top: 0; left: 50%; transform: translateX(-50%); z-index: 30; background: var(--danger); color: var(--white); font-size: 12px; font-weight: 700; padding: 6px 14px; border-radius: 0 0 10px 10px; }
 
   @media (prefers-reduced-motion: reduce) { * { transition: none !important; } }
   @media (max-width: 900px) {
     html, body { overflow: auto; height: auto; }
     main { grid-template-columns: 1fr; }
     #board { height: 70vh; }
-    .stats { gap: 14px; }
     header { flex-wrap: wrap; }
+    .seats, .duo { grid-template-columns: 1fr; }
   }
 </style>
 </head>
 <body>
   <img class="rings tr" src="assets/rings.png" alt="">
   <img class="rings bl" src="assets/rings.png" alt="">
+  <div id="conn" class="hidden">Reconnecting…</div>
 
   <header>
     <img class="logo" src="assets/logo-horizontal-white.webp" alt="Seeds Congress">
@@ -191,63 +218,85 @@
       <div class="eyebrow" id="edition">Career Edition</div>
       <h1 id="title">Guess Who?</h1>
     </div>
-    <div class="stats">
-      <div class="stat"><div class="k">Round</div><div class="v" id="s-round">1</div></div>
-      <div class="stat"><div class="k">Remaining</div><div class="v"><em id="s-left">0</em> / <span id="s-total">0</span></div></div>
-      <div class="stat"><div class="k">Correct guesses</div><div class="v" id="s-wins">0</div></div>
-    </div>
-    <div class="head-actions">
+    <div class="head-right">
+      <div class="code-chip hidden" id="codeChip">Game <b id="codeTxt"></b></div>
+      <div class="players hidden" id="players"></div>
       <button class="btn btn-ghost" id="howBtn">How to play</button>
-      <button class="btn btn-ghost" id="newRound">New round</button>
     </div>
   </header>
 
-  <main>
-    <section id="board"><div id="grid"></div></section>
+  <!-- Home: start or join -->
+  <section class="center hidden" id="v-home">
+    <div class="panel">
+      <div class="eyebrow">Two players · two laptops</div>
+      <h2>Guess the other player’s <span>secret person</span></h2>
+      <p class="lead">Start a game on one laptop, then send the link to the other player. You’ll each pick a secret person from the board, then take turns asking yes-or-no questions until you can guess who the other chose.</p>
+      <div class="row">
+        <button class="btn btn-primary" id="newGame">Start a new game</button>
+        <span class="or">or join with a code</span>
+        <form class="row" id="joinForm" style="gap:8px">
+          <input class="input code" id="joinCode" maxlength="6" placeholder="CODE" autocomplete="off" aria-label="Game code">
+          <button class="btn btn-ghost">Join</button>
+        </form>
+      </div>
+      <p class="err" id="homeErr"></p>
+    </div>
+  </section>
 
+  <!-- Lobby: choose a seat -->
+  <section class="center hidden" id="v-lobby">
+    <div class="panel">
+      <div class="eyebrow">Game <span id="lobbyCode"></span></div>
+      <h2>Who are you?</h2>
+      <p class="lead">Choose Player 1 or Player 2 and type your name. You can change your name later.</p>
+      <div class="seats" id="seats"></div>
+      <div class="invite">
+        <div class="lbl">Send this link to the other player, or have them enter code <b id="lobbyCode2" style="color:var(--white)"></b>:</div>
+        <div class="row" style="flex-wrap:nowrap"><span class="url" id="lobbyUrl"></span><button class="btn btn-ghost" id="copyLobby" style="padding:8px 14px;margin-left:auto">Copy link</button></div>
+      </div>
+      <p class="err" id="lobbyErr"></p>
+    </div>
+  </section>
+
+  <!-- Game -->
+  <main class="hidden" id="v-game">
+    <section id="board"><div id="grid"></div></section>
     <aside>
-      <!-- Step 1: choose your secret person -->
-      <div class="step" id="step-pick">
+      <!-- Step: pick secret person -->
+      <div class="step hidden" id="step-pick">
         <div>
-          <div class="eyebrow">Step 1 · Your team</div>
+          <div class="eyebrow" id="pickEyebrow">Round 1 · Step 1</div>
           <h2>Choose your secret person</h2>
         </div>
-        <p class="lead">Pick one person from the board without letting the other team see. They'll try to guess who it is. Click the <b>i</b> on any card to learn about that person.</p>
-        <div class="person-slot" id="pickSlot"><div class="ph">?</div><div class="empty-txt">Click a card to choose.</div></div>
+        <p class="lead">Pick one person the other player has to guess. Click the <b>i</b> on a card to learn who someone is.</p>
+        <div class="person-slot" id="pickSlot"></div>
+        <div class="status" id="pickStatus"></div>
         <div class="stepper">
           <span class="lbl">Time to ask questions</span>
-          <span class="ctl">
-            <button id="minus" aria-label="Less time">−</button>
-            <span class="val" id="mins">5 min</span>
-            <button id="plus" aria-label="More time">+</button>
-          </span>
+          <span class="ctl"><button id="minus" aria-label="Less time">−</button><span class="val" id="mins">5 min</span><button id="plus" aria-label="More time">+</button></span>
         </div>
-        <div class="actions">
-          <button class="btn btn-primary" id="lockPick" disabled>Lock in our person</button>
+        <div class="invite hidden" id="pickInvite" style="margin:0">
+          <div class="lbl">Waiting for the other player. Send them this link:</div>
+          <div class="row" style="flex-wrap:nowrap"><span class="url" id="pickUrl" style="font-size:11px"></span><button class="btn btn-ghost" id="copyPick" style="padding:6px 10px;margin-left:auto;font-size:10px">Copy</button></div>
         </div>
+        <div class="actions"><button class="btn btn-primary" id="lockPick" disabled>Lock in my person</button></div>
       </div>
 
-      <!-- Step 2: ask questions -->
+      <!-- Step: play -->
       <div class="step hidden" id="step-play">
-        <div>
-          <div class="eyebrow">Your secret person</div>
-          <div class="person-slot secret" id="mySlot" style="margin-top:8px"></div>
-        </div>
+        <div class="person-slot" id="mySlot"></div>
         <div class="timer" id="timer">
           <div class="clock" id="clock">5:00</div>
-          <div class="bar"><i id="bar"></i></div>
-          <div class="row">
-            <button class="btn btn-primary" id="startBtn">Start timer</button>
-            <button class="btn btn-ghost" id="addMin">+1 min</button>
-          </div>
+          <div class="tbtns"><button class="btn btn-primary" id="startBtn">Start</button><button class="btn btn-ghost" id="addMin">+1 min</button></div>
+          <div class="bar" id="bar"></div>
         </div>
-        <div class="section-title">
-          <div class="eyebrow">Example questions</div>
-        </div>
-        <ul id="examples"></ul>
+        <div class="turn" id="turn"></div>
+        <div id="askArea"></div>
+        <div class="eyebrow">Questions so far</div>
+        <ul id="log"></ul>
         <div class="actions">
           <p class="hint" id="hint"></p>
-          <button class="btn btn-primary" id="guessBtn">Lock in our guess</button>
+          <button class="btn btn-primary" id="guessBtn">Lock in my guess</button>
         </div>
       </div>
     </aside>
@@ -259,11 +308,7 @@
       <button class="x" data-close aria-label="Close">×</button>
       <div class="bio">
         <div class="pic"><img id="bioImg" alt=""></div>
-        <div>
-          <div class="eyebrow">Who is this?</div>
-          <h3 id="bioName"></h3>
-          <div class="rl" id="bioRole"></div>
-        </div>
+        <div><div class="eyebrow">Who is this?</div><h3 id="bioName"></h3><div class="rl" id="bioRole"></div></div>
         <ul id="bioFacts"></ul>
         <div class="src" id="bioSrc"></div>
       </div>
@@ -274,59 +319,47 @@
   <div class="modal" id="howModal" role="dialog" aria-modal="true" aria-labelledby="howTitle">
     <div class="sheet howto">
       <button class="x" data-close aria-label="Close">×</button>
-      <div class="eyebrow">Team vs team</div>
+      <div class="eyebrow">Player vs player</div>
       <h3 id="howTitle">How to play</h3>
       <ol>
-        <li>Each team plays on its <b>own laptop</b> with this game open.</li>
-        <li>Each team <b>secretly chooses one person</b> from the board and locks them in. That's who the other team has to guess.</li>
-        <li>Don't know someone? Click the <b>i</b> on their card for a short bio and a few facts.</li>
-        <li>Start the timer. Teams <b>take turns</b> asking the other team one yes-or-no question at a time. There's no limit on how many questions you ask.</li>
+        <li>One player clicks <b>Start a new game</b> and sends the link (or the code) to the other player.</li>
+        <li>Each player chooses <b>Player 1 or Player 2</b> and types their name. Each player now has their own link.</li>
+        <li>Each player <b>secretly picks a person</b> from the board and locks them in. Click the <b>i</b> on a card to learn about someone.</li>
+        <li>When both are locked in, start the timer. You have <b id="howMins">5 minutes</b> in total.</li>
+        <li><b>Take turns</b> asking one yes-or-no question. The other player answers Yes or No on their laptop, then it’s their turn. There’s no limit on questions.</li>
         <li>Click a card to <b>rule that person out</b>. Click it again to bring them back.</li>
-        <li>Each team gets <b id="howMins">5 minutes</b> in total to ask questions.</li>
-        <li>When you're sure, or when time runs out, <b>lock in your guess</b>.</li>
-        <li>Both teams reveal their secret person. If both teams guess correctly, <b>both teams win</b>.</li>
+        <li>When you’re sure, or when time runs out, <b>lock in your guess</b>.</li>
+        <li>Once both players have guessed, both secret people are revealed. If you both guessed right, <b>you both win</b>.</li>
       </ol>
     </div>
   </div>
 
   <!-- Time's up -->
   <div class="modal" id="upModal" role="dialog" aria-modal="true">
-    <div class="sheet timesup">
-      <div class="eyebrow">Time's up</div>
-      <div class="big">0:00</div>
-      <p class="hint" style="margin:0 0 16px">No more questions. Pick who you think the other team chose.</p>
-      <button class="btn btn-primary" id="upGuess">Lock in our guess</button>
+    <div class="sheet" style="text-align:center">
+      <div class="eyebrow">Time’s up</div>
+      <div class="timesup"><div class="big">0:00</div></div>
+      <p class="hint" style="margin:0 0 16px">No more questions. Pick who you think the other player chose.</p>
+      <button class="btn btn-primary" id="upGuess">Lock in my guess</button>
     </div>
   </div>
 
   <!-- Result -->
   <div class="modal" id="resultModal" role="dialog" aria-modal="true" aria-labelledby="resTitle">
-    <div class="sheet result">
-      <div class="eyebrow">Reveal</div>
-      <h3 id="resTitle">Did you guess right?</h3>
-      <div class="duo">
-        <div class="who">
-          <div class="eyebrow">Our guess</div>
-          <div class="pic"><img id="resGuessImg" alt=""></div>
-          <div class="nm" id="resGuessName"></div><div class="rl" id="resGuessRole"></div>
-        </div>
-        <div class="who">
-          <div class="eyebrow">Our secret person</div>
-          <div class="pic"><img id="resMineImg" alt=""></div>
-          <div class="nm" id="resMineName"></div><div class="rl" id="resMineRole"></div>
-        </div>
-      </div>
-      <p class="msg" id="resMsg">Show your secret person to the other team, and ask them to reveal theirs.</p>
-      <div class="row" id="resAsk">
-        <button class="btn btn-primary" id="gotIt">We guessed right</button>
-        <button class="btn btn-ghost" id="missed">We guessed wrong</button>
-      </div>
-      <div class="row hidden" id="resNext">
-        <button class="btn btn-primary" id="again">Play next round</button>
-      </div>
+    <div class="sheet wide result">
+      <div class="eyebrow" id="resEyebrow">Round 1 · Reveal</div>
+      <h3 id="resTitle"></h3>
+      <div class="duo" id="resDuo"></div>
+      <p class="msg" id="resMsg"></p>
+      <button class="btn btn-primary" id="again">Play another round</button>
     </div>
   </div>
 
+  <div id="toast"></div>
+
+<script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-app-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-database-compat.js"></script>
+<script src="firebase-config.js"></script>
 <script src="game.js"></script>
 </body>
 </html>

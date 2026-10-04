@@ -1,44 +1,153 @@
-// Guess Who? · team vs team. Each team runs this page on its own laptop:
-// pick a secret person, run the question timer, rule people out, lock in a guess, reveal.
+// Guess Who? · live player vs player.
+// Two laptops share one game through Firebase Realtime Database:
+//   /games/CODE = { created, mins, round, players: {p1, p2}, rounds: {r1: {...}, r2: ...} }
+// URLs:  ?game=CODE          → choose Player 1 / Player 2
+//        ?game=CODE&p=1|2    → that player's own screen
+// A player's secret person stays in their own browser until both have guessed.
 (() => {
   const $ = s => document.querySelector(s);
-  const grid = $('#grid'), board = $('#board');
   const esc = s => String(s ?? '').replace(/[&<>"']/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
   const X_SVG = '<svg viewBox="0 0 100 100" aria-hidden="true"><circle cx="50" cy="50" r="44" fill="rgba(6,24,36,.55)" stroke="#8AD09B" stroke-width="3"/><path d="M34 34 L66 66 M66 34 L34 66" stroke="#fff" stroke-width="6" stroke-linecap="round"/></svg>';
+  const CODE_CHARS = 'ABCDEFGHJKLMNPQRSTUVWXYZ23456789'; // no I, O, 0, 1
+  const grid = $('#grid'), board = $('#board');
 
-  let data = null;
-  // phase: 'pick' → 'play' → 'result'
-  let state = { phase: 'pick', round: 1, wins: 0, mins: 5, pickId: null, mineId: null, out: [], timeLeft: 0, total: 0, endsAt: null, guessId: null, resolved: null, concealed: false };
-  let guessing = false, ticker = null;
+  firebase.initializeApp(window.FIREBASE_CONFIG);
+  const db = firebase.database();
+  const TS = firebase.database.ServerValue.TIMESTAMP;
+  let offset = 0;
+  db.ref('.info/serverTimeOffset').on('value', s => { offset = s.val() || 0; });
+  const now = () => Date.now() + offset;
+
+  // One id per browser tab, so two tabs on one laptop can be two players while testing.
+  const CLIENT = (() => {
+    try { let c = sessionStorage.getItem('gw-client'); if (!c) { c = Math.random().toString(36).slice(2, 12); sessionStorage.setItem('gw-client', c); } return c; }
+    catch { return Math.random().toString(36).slice(2, 12); }
+  })();
+  const store = {
+    get(k) { try { return JSON.parse(localStorage.getItem(k)); } catch { return null; } },
+    set(k, v) { try { localStorage.setItem(k, JSON.stringify(v)); } catch {} },
+  };
+
+  let data = null;          // people, questions, settings from data/data.json
+  let code = null, seat = null, game = null, gameRef = null;
+  let pickId = null, guessing = false, concealed = false, ticker = null, upShownFor = null, needSecret = false;
 
   const person = id => data.people.find(p => p.id === id);
-  const save = () => { try { sessionStorage.setItem('gw-game', JSON.stringify(state)); } catch {} };
+  const other = s => (s === 'p1' ? 'p2' : 'p1');
+  const pname = s => (game && game.players && game.players[s] && game.players[s].name) || (s === 'p1' ? 'Player 1' : 'Player 2');
+  const roundKey = () => 'r' + ((game && game.round) || 1);
+  const R = () => (game && game.rounds && game.rounds[roundKey()]) || {};
+  const gref = path => db.ref(`games/${code}/${path}`);
+  const rref = path => gref(`rounds/${roundKey()}` + (path ? `/${path}` : ""));
+  const secretKey = () => `gw:${code}:${roundKey()}:${seat}:secret`;
+  const outKey = () => `gw:${code}:${roundKey()}:${seat}:out`;
+  const mySecret = () => store.get(secretKey());
+  const myOut = () => new Set(store.get(outKey()) || []);
   const fmt = ms => { const s = Math.max(0, Math.ceil(ms / 1000)); return Math.floor(s / 60) + ':' + String(s % 60).padStart(2, '0'); };
-  const remaining = () => state.endsAt ? Math.max(0, state.endsAt - Date.now()) : state.timeLeft;
 
-  async function load() {
-    const r = await fetch('data/data.json?v=' + Date.now(), { cache: 'no-store' });
-    data = await r.json();
-    $('#title').textContent = data.settings.title || 'Guess Who?';
-    $('#edition').textContent = data.settings.edition || '';
-    state.mins = Number(data.settings.roundMinutes) || 5;
-    // Survive an accidental refresh mid-round (this tab only).
-    try {
-      const saved = JSON.parse(sessionStorage.getItem('gw-game') || 'null');
-      if (saved && (!saved.mineId || person(saved.mineId))) state = { ...state, ...saved };
-    } catch {}
-    $('#examples').innerHTML = data.questions.map(q => `<li>${esc(q.text)}</li>`).join('');
-    renderGrid();
-    new ResizeObserver(layout).observe(board);
-    if (document.fonts) document.fonts.ready.then(layout);
-    render();
-    if (state.endsAt) startTicker();
-    if (state.phase === 'result') showResult(); // page was reloaded mid-reveal
+  function toast(msg) {
+    const t = $('#toast'); t.textContent = msg; t.className = 'show';
+    clearTimeout(toast.t); toast.t = setTimeout(() => (t.className = ''), 2600);
+  }
+  async function copy(text) {
+    try { await navigator.clipboard.writeText(text); toast('Link copied'); }
+    catch { toast('Select the link and copy it'); }
+  }
+  const linkFor = (c, p) => location.origin + location.pathname + '?game=' + c + (p ? '&p=' + p : '');
+
+  // ---------- routing ----------
+  function go(params) {
+    const q = new URLSearchParams(params).toString();
+    history.pushState(null, '', location.pathname + (q ? '?' + q : ''));
+    route();
+  }
+  window.addEventListener('popstate', route);
+
+  function route() {
+    const q = new URLSearchParams(location.search);
+    const c = (q.get('game') || '').toUpperCase();
+    const p = q.get('p') === '1' ? 'p1' : q.get('p') === '2' ? 'p2' : null;
+    seat = p; guessing = false; pickId = null; needSecret = false;
+    if (c !== code) subscribe(/^[A-HJ-NP-Z2-9]{4}$/.test(c) ? c : null);
+    else render();
+  }
+
+  function subscribe(c) {
+    if (gameRef) gameRef.off();
+    code = c; game = null; gameRef = null;
+    if (!code) { render(); return; }
+    gameRef = db.ref('games/' + code);
+    gameRef.on('value', snap => {
+      const prevRound = game && game.round;
+      game = snap.val();
+      if (prevRound && game && game.round !== prevRound) { pickId = null; guessing = false; needSecret = false; closeModals(); }
+      render();
+    }, err => { $('#homeErr').textContent = 'Could not reach the game server. ' + err.message; });
+  }
+
+  // ---------- presence ----------
+  let presenceFor = null;
+  db.ref('.info/connected').on('value', s => {
+    $('#conn').classList.toggle('hidden', s.val() === true || !code);
+    if (s.val() === true) presenceFor = null; // re-announce after a reconnect
+    if (game) render();
+  });
+  function announce() {
+    const key = code + seat;
+    if (presenceFor === key) return;
+    presenceFor = key;
+    const ref = gref(`players/${seat}/online`);
+    ref.onDisconnect().set(false);
+    ref.set(true);
+  }
+
+  // ---------- views ----------
+  function show(view) {
+    ['home', 'lobby', 'game'].forEach(v => $('#v-' + v).classList.toggle('hidden', v !== view));
+    $('#codeChip').classList.toggle('hidden', view === 'home');
+    $('#players').classList.toggle('hidden', view !== 'game');
+    $('#codeTxt').textContent = code || '';
+  }
+
+  function render() {
+    if (!data) return;
+    if (!code) { show('home'); return; }
+    if (!game) {
+      show('lobby');
+      $('#seats').innerHTML = '';
+      $('#lobbyErr').textContent = gameRef ? `Looking for game ${code}…` : '';
+      return;
+    }
+    const players = game.players || {};
+    const mine = seat && players[seat] && players[seat].client === CLIENT;
+    // Reopened your own link on a new tab: take the seat back if nobody else is using it.
+    if (seat && players[seat] && !mine && !players[seat].online) { gref(`players/${seat}/client`).set(CLIENT); return; }
+    if (seat && mine) { announce(); renderGame(); return; }
+    if (seat && !players[seat]) { $('#lobbyErr').textContent = ''; }
+    if (seat && players[seat] && !mine) $('#lobbyErr').textContent = `${pname(seat)} is already playing as ${seat === 'p1' ? 'Player 1' : 'Player 2'} on another screen.`;
+    renderLobby();
+  }
+
+  function renderLobby() {
+    show('lobby');
+    $('#lobbyCode').textContent = code; $('#lobbyCode2').textContent = code;
+    $('#lobbyUrl').textContent = linkFor(code);
+    const players = game.players || {};
+    $('#seats').innerHTML = ['p1', 'p2'].map(s => {
+      const pl = players[s], label = s === 'p1' ? 'Player 1' : 'Player 2';
+      if (!pl) return `<div class="seat-card"><div class="eyebrow">${label}<span>Open</span></div>
+          <input class="input" id="name-${s}" maxlength="24" placeholder="Your name" aria-label="${label} name">
+          <button class="btn btn-primary" data-claim="${s}">Play as ${label}</button></div>`;
+      if (pl.client === CLIENT) return `<div class="seat-card mine"><div class="eyebrow">${label}<span>You</span></div>
+          <div class="taken">${esc(pl.name)}</div><button class="btn btn-primary" data-go="${s}">Continue</button></div>`;
+      return `<div class="seat-card"><div class="eyebrow">${label}<span>${pl.online ? 'Playing' : 'Away'}</span></div>
+          <div class="taken">${esc(pl.name)}</div><div class="sub">${pl.online ? 'Already playing on another screen.' : 'Not connected right now.'}</div>
+          <button class="btn btn-ghost" data-take="${s}">This is me</button></div>`;
+    }).join('');
   }
 
   // ---------- board ----------
   function renderGrid() {
-    if (!data.people.length) { grid.innerHTML = '<div class="hint">No people yet. Add some in admin.</div>'; return; }
     grid.innerHTML = data.people.map(p => `
       <div class="card" role="button" tabindex="0" data-id="${esc(p.id)}" aria-label="${esc(p.name)}, ${esc(p.position)}">
         <div class="photo">
@@ -48,12 +157,11 @@
         </div>
         <div class="meta"><div class="name">${esc(p.name)}</div><div class="role">${esc(p.position)}</div></div>
       </div>`).join('');
-    layout();
   }
 
   // Pick the column count that gives the biggest cards while every card fits on screen (no scrolling).
   function layout() {
-    const n = data && data.people.length; if (!n) return;
+    const n = data && data.people.length; if (!n || !board.clientWidth) return;
     const W = board.clientWidth, H = board.clientHeight;
     const gap = Math.max(8, Math.min(14, Math.round(W / 110)));
     const metaFor = w => {
@@ -67,7 +175,6 @@
       let w = (W - gap * (cols - 1)) / cols;
       const cellH = (H - gap * (rows - 1)) / rows;
       let m = metaFor(w);
-      // photo between slightly-landscape (0.85) and portrait (1.3) height:width
       let photo = Math.min(cellH - m.h, w * 1.3);
       if (photo < w * 0.85) {
         for (let k = 0; k < 3; k++) { w = (cellH - m.h) / 0.85; m = metaFor(w); }
@@ -77,7 +184,6 @@
       const score = w * Math.min(photo, w * 1.3);
       if (!best || score > best.score) best = { cols, w, h: Math.min(photo, w * 1.3) + m.h, m, gap, score };
     }
-    // Tiny windows (phones): give up on "no scroll" and let the board scroll instead.
     const tooSmall = !best || best.w < 70;
     if (tooSmall) {
       const cols = Math.max(2, Math.floor((W + gap) / (120 + gap)));
@@ -94,11 +200,6 @@
     grid.style.setProperty('--role-size', m.role + 'px');
     grid.style.setProperty('--meta-pad', `${m.padY}px ${m.padX}px`);
     grid.style.setProperty('--meta-h', m.h + 'px');
-    fitNames();
-  }
-
-  // Shrink a long name (e.g. "Salahuddin al-Ayyubi") until it fits on one line.
-  function fitNames() {
     grid.querySelectorAll('.name').forEach(el => {
       el.style.fontSize = '';
       let size = parseFloat(getComputedStyle(el).fontSize);
@@ -107,151 +208,289 @@
     });
   }
 
-  // ---------- rendering ----------
-  function slot(p, empty) {
-    if (!p) return `<div class="ph">?</div><div class="empty-txt">${empty}</div>`;
-    return `<div class="ph"><img src="${esc(p.image)}" alt="" style="object-position:50% ${Number(p.imageY ?? 20)}%"></div>
-      <div><div class="nm">${esc(p.name)}</div><div class="rl">${esc(p.position)}</div>${empty}</div>`;
+  // ---------- game state helpers ----------
+  function timerState() {
+    const r = R(), total = (Number(game.mins) || 5) * 60000;
+    return r.timer || { total, left: total, endsAt: null };
+  }
+  const remaining = () => { const t = timerState(); return t.endsAt ? Math.max(0, t.endsAt - now()) : t.left; };
+  const timerStarted = () => { const t = timerState(); return !!t.endsAt || t.left < t.total; };
+  const timeUp = () => timerStarted() && remaining() <= 0;
+  function phase() {
+    const r = R(), lk = r.locked || {}, rv = r.reveal || {};
+    if (!(lk.p1 && lk.p2)) return 'pick';
+    if (rv.p1 && rv.p2) return 'result';
+    return 'play';
+  }
+  function qaList() {
+    const qa = R().qa || {};
+    return Object.entries(qa).map(([id, q]) => ({ id, ...q })).sort((a, b) => (a.at || 0) - (b.at || 0));
+  }
+  function winsFor(s) {
+    let n = 0;
+    Object.values((game && game.rounds) || {}).forEach(r => {
+      const g = r.guess || {}, rv = r.reveal || {};
+      if (rv.p1 && rv.p2 && g[s] && g[s] === rv[other(s)]) n++;
+    });
+    return n;
   }
 
-  function render() {
-    const out = new Set(state.out);
+  // ---------- game screen ----------
+  function slot(p, extra) {
+    if (!p) return `<div class="ph">?</div><div class="grow"><div class="empty-txt">${extra || ''}</div></div>`;
+    return `<div class="ph"><img src="${esc(p.image)}" alt="" style="object-position:50% ${Number(p.imageY ?? 20)}%"></div>
+      <div class="grow"><div class="nm">${esc(p.name)}</div><div class="rl">${esc(p.position)}</div>${extra || ''}</div>`;
+  }
+
+  function renderPlayers() {
+    const ph = phase(), turn = R().turn || 'p1';
+    $('#players').innerHTML = ['p1', 'p2'].map(s => {
+      const pl = (game.players || {})[s];
+      const me = s === seat;
+      const nameHtml = me ? `<input id="myName" maxlength="24" value="${esc(pname(s))}" aria-label="Your name">` : esc(pl ? pl.name : 'Waiting…');
+      return `<div class="pchip ${pl && pl.online ? 'online' : ''} ${ph === 'play' && turn === s ? 'turn' : ''}">
+        <span class="seat">${s === 'p1' ? 1 : 2}</span>
+        <span class="nm">${nameHtml}</span>
+        ${me ? '<span class="you">You</span>' : ''}
+        <span class="wins">${winsFor(s)} won</span></div>`;
+    }).join('');
+  }
+
+  function renderGame() {
+    show('game');
+    if (!grid.children.length) { renderGrid(); requestAnimationFrame(layout); }
+    // Keep the name box stable while the player is typing in it.
+    const typing = document.activeElement && document.activeElement.id === 'myName';
+    if (!typing) renderPlayers();
+
+    const r = R(), ph = phase(), opp = other(seat), oppPl = (game.players || {})[opp];
+    const secret = mySecret(), out = myOut();
+    const locked = !!(r.locked && r.locked[seat]);
+    $('#howMins').textContent = `${game.mins || 5} minute${game.mins == 1 ? '' : 's'}`;
+
     document.querySelectorAll('.card').forEach(c => {
       const id = c.dataset.id;
-      c.classList.toggle('picked', state.phase === 'pick' && id === state.pickId);
-      c.classList.toggle('mine', state.phase !== 'pick' && id === state.mineId);
-      c.classList.toggle('out', state.phase !== 'pick' && out.has(id));
+      c.classList.toggle('picked', ph === 'pick' && !locked && id === pickId);
+      c.classList.toggle('mine', ph !== 'pick' || locked ? id === secret : false);
+      c.classList.toggle('out', ph !== 'pick' && out.has(id));
     });
-    document.body.classList.toggle('guessing', guessing);
-    document.body.classList.toggle('concealed', state.concealed);
+    document.body.classList.toggle('guessing', guessing || needSecret);
+    document.body.classList.toggle('concealed', concealed);
 
-    $('#s-round').textContent = state.round;
-    $('#s-total').textContent = data.people.length;
-    $('#s-left').textContent = data.people.length - (state.phase === 'pick' ? 0 : out.size);
-    $('#s-wins').textContent = state.wins;
-    $('#howMins').textContent = `${state.mins} minute${state.mins === 1 ? '' : 's'}`;
+    $('#step-pick').classList.toggle('hidden', ph !== 'pick');
+    $('#step-play').classList.toggle('hidden', ph === 'pick');
 
-    $('#step-pick').classList.toggle('hidden', state.phase !== 'pick');
-    $('#step-play').classList.toggle('hidden', state.phase === 'pick');
-
-    if (state.phase === 'pick') {
-      $('#pickSlot').innerHTML = slot(person(state.pickId), state.pickId ? '' : 'Click a card to choose.');
-      $('#lockPick').disabled = !state.pickId;
-      $('#mins').textContent = state.mins + ' min';
-    } else {
-      const me = person(state.mineId);
-      $('#mySlot').innerHTML = slot(me, `<button class="linkbtn" id="toggleHide">${state.concealed ? 'Show' : 'Hide'}</button>`);
-      $('#mySlot').classList.toggle('concealed', state.concealed);
-      renderTimer();
-      $('#guessBtn').textContent = guessing ? 'Cancel' : 'Lock in our guess';
-      $('#guessBtn').className = 'btn ' + (guessing ? 'btn-ghost' : 'btn-primary');
-      $('#guessBtn').disabled = state.phase === 'result';
-      const left = data.people.length - out.size;
-      $('#hint').textContent = guessing ? 'Click the person you think the other team chose.'
-        : remaining() <= 0 ? 'Time is up. Lock in your guess.'
-        : !state.endsAt && state.timeLeft === state.total ? 'Start the timer when both teams are ready.'
-        : left === 1 ? 'Only one person left. Lock in your guess.'
-        : 'Click a card to rule that person out.';
+    if (ph === 'pick') {
+      $('#pickEyebrow').textContent = `Round ${game.round || 1} · Step 1`;
+      const shown = locked ? person(secret) : person(pickId);
+      $('#pickSlot').innerHTML = locked && !secret
+        ? slot(null, 'Locked in on another screen.')
+        : slot(shown, shown ? (locked ? '<button class="linkbtn" id="unlock">Change</button>' : '') : 'Click a card to choose.');
+      const st = (name, s) => {
+        const pl = (game.players || {})[s];
+        const state = !pl ? '<span class="pill">Not joined</span>' : r.locked && r.locked[s] ? '<span class="pill ok">Locked in</span>' : '<span class="pill">Choosing</span>';
+        return `<div><span>${esc(name)}</span>${state}</div>`;
+      };
+      $('#pickStatus').innerHTML = st('You', seat) + st(pname(opp), opp);
+      $('#mins').textContent = (game.mins || 5) + ' min';
+      $('#pickInvite').classList.toggle('hidden', !!oppPl);
+      $('#pickUrl').textContent = linkFor(code);
+      $('#lockPick').disabled = locked || !pickId;
+      $('#lockPick').textContent = locked ? (oppPl ? `Waiting for ${pname(opp)}…` : 'Waiting for the other player…') : 'Lock in my person';
+      closeModal('#resultModal');
+      return;
     }
-    save();
+
+    // play / result
+    $('#mySlot').innerHTML = slot(person(secret), `<button class="linkbtn" id="toggleHide">${concealed ? 'Show' : 'Hide'} my person</button>`);
+    $('#mySlot').classList.toggle('concealed', concealed);
+    renderTimer();
+
+    const turn = r.turn || 'p1', list = qaList();
+    const incoming = list.find(q => q.from === opp && !q.ans);
+    const mine = list.find(q => q.from === seat && !q.ans);
+    const myGuess = r.guess && r.guess[seat], oppGuess = r.guess && r.guess[opp];
+    const up = timeUp();
+
+    $('#turn').className = 'turn' + (turn === seat && !myGuess && !up ? ' mine' : '');
+    $('#turn').textContent = up ? 'Time’s up' : myGuess && oppGuess ? 'Both players have guessed' : turn === seat ? 'Your turn to ask' : `${pname(opp)}’s turn to ask`;
+
+    let ask = '';
+    if (incoming) {
+      ask = `<div class="incoming"><div class="eyebrow">${esc(pname(opp))} asks</div><div class="q">${esc(incoming.text)}</div>
+        <div class="row"><button class="btn btn-primary" data-ans="yes" data-q="${esc(incoming.id)}">Yes</button><button class="btn btn-ghost" data-ans="no" data-q="${esc(incoming.id)}">No</button></div></div>`;
+    } else if (up || myGuess) {
+      ask = '';
+    } else if (mine) {
+      ask = `<div class="waiting">Waiting for ${esc(pname(opp))} to answer…</div>`;
+    } else if (turn === seat) {
+      const opts = data.questions.map(q => `<option>${esc(q.text)}</option>`).join('');
+      ask = `<form class="askbox" id="askForm">
+        <div class="row"><input class="input" id="askText" maxlength="140" placeholder="Type a yes-or-no question" autocomplete="off"><button class="btn btn-primary">Ask</button></div>
+        <select class="input" id="askPick" aria-label="Example questions"><option value="">Or pick an example question…</option>${opts}</select></form>`;
+    } else {
+      ask = `<div class="waiting">${esc(pname(opp))} is thinking of a question…</div>`;
+    }
+    // Don't wipe a question the player is halfway through typing.
+    const typingAsk = document.activeElement && (document.activeElement.id === 'askText' || document.activeElement.id === 'askPick');
+    const keepAsk = typingAsk && $('#askForm') && turn === seat && !incoming && !mine && !up && !myGuess;
+    if (!keepAsk) { const draft = $('#askText') ? $('#askText').value : ''; $('#askArea').innerHTML = ask; if ($('#askText')) $('#askText').value = draft; }
+
+    $('#log').innerHTML = list.length ? list.map(q => `<li><span class="who">${q.from === seat ? 'You' : esc(pname(q.from))}</span><span class="txt">${esc(q.text)}</span>
+        <span class="ans ${q.ans || 'wait'}">${q.ans ? q.ans.toUpperCase() : '…'}</span></li>`).join('')
+      : '<li class="empty">No questions yet</li>';
+    $('#log').scrollTop = $('#log').scrollHeight;
+
+    const g = $('#guessBtn');
+    g.disabled = !!myGuess || ph === 'result';
+    g.textContent = myGuess ? `You guessed ${person(myGuess) ? person(myGuess).name : ''}` : guessing ? 'Cancel' : 'Lock in my guess';
+    g.className = 'btn ' + (guessing ? 'btn-ghost' : 'btn-primary');
+    $('#hint').textContent = needSecret ? 'Click your own secret person so it can be revealed.'
+      : guessing ? `Click the person you think ${pname(opp)} chose.`
+      : myGuess ? (oppGuess ? 'Revealing…' : `Waiting for ${pname(opp)} to guess.`)
+      : up ? 'Time is up. Lock in your guess.'
+      : !timerStarted() ? 'The timer starts with the first question.'
+      : 'Click a card to rule that person out.';
+
+    if (up && !myGuess && upShownFor !== roundKey()) { upShownFor = roundKey(); guessing = false; openModal('#upModal'); }
+
+    // Both guessed: reveal my secret (it never left this browser until now).
+    if (myGuess && oppGuess && !(r.reveal && r.reveal[seat])) {
+      if (secret) rref(`reveal/${seat}`).set(secret);
+      else needSecret = true;
+    }
+    if (ph === 'result') showResult(); else closeModal('#resultModal');
   }
 
   function renderTimer() {
-    const ms = remaining();
+    if (!game || !seat) return;
+    const t = timerState(), ms = remaining();
     $('#clock').textContent = fmt(ms);
-    $('#bar').style.width = (state.total ? (ms / state.total) * 100 : 0) + '%';
-    const t = $('#timer');
-    t.classList.toggle('low', ms > 0 && ms <= 60000);
-    t.classList.toggle('done', ms <= 0);
-    $('#startBtn').textContent = state.endsAt ? 'Pause' : (state.timeLeft === state.total ? 'Start timer' : 'Resume');
-    $('#startBtn').disabled = ms <= 0 || state.phase === 'result';
+    $('#bar').style.width = (t.total ? (ms / t.total) * 100 : 0) + '%';
+    $('#timer').classList.toggle('low', ms > 0 && ms <= 60000);
+    $('#timer').classList.toggle('done', timerStarted() && ms <= 0);
+    $('#startBtn').textContent = t.endsAt ? 'Pause' : timerStarted() ? 'Resume' : 'Start';
+    $('#startBtn').disabled = (timerStarted() && ms <= 0) || phase() !== 'play';
+    $('#addMin').disabled = phase() !== 'play';
+  }
+  ticker = setInterval(() => {
+    if (!game || !seat || phase() !== 'play') return;
+    const wasUp = $('#timer').classList.contains('done');
+    renderTimer();
+    if (!wasUp && timeUp()) renderGame();
+  }, 250);
+
+  // ---------- result ----------
+  function showResult() {
+    const r = R(), g = r.guess || {}, rv = r.reveal || {};
+    const ok = s => g[s] && g[s] === rv[other(s)];
+    const me = seat, opp = other(seat);
+    $('#resEyebrow').textContent = `Round ${game.round || 1} · Reveal`;
+    $('#resTitle').textContent = ok(me) && ok(opp) ? 'You both got it! You both win.'
+      : ok(me) ? 'You got it! You win this round.'
+      : ok(opp) ? `${pname(opp)} got it and wins this round.`
+      : 'Nobody guessed right this time.';
+    const card = s => {
+      const guess = person(g[s]), actual = person(rv[other(s)]);
+      return `<div class="who ${ok(s) ? 'win' : ''}">
+        <div class="head"><b>${s === me ? 'You' : esc(pname(s))}</b><span class="pill ${ok(s) ? 'ok' : ''}">${ok(s) ? 'Correct' : 'Wrong'}</span></div>
+        <div class="mini">${guess ? `<img src="${esc(guess.image)}" alt="">` : ''}<div><div class="k">Guessed</div><div class="v">${esc(guess ? guess.name : '—')}</div></div></div>
+        <div class="mini">${actual ? `<img src="${esc(actual.image)}" alt="">` : ''}<div><div class="k">${s === me ? esc(pname(opp)) + ' chose' : 'You chose'}</div><div class="v">${esc(actual ? actual.name : '—')}</div></div></div>
+      </div>`;
+    };
+    $('#resDuo').innerHTML = card(me) + card(opp);
+    $('#resMsg').textContent = `Score so far: You ${winsFor(me)} · ${pname(opp)} ${winsFor(opp)}`;
+    if (!$('#resultModal').classList.contains('show')) openModal('#resultModal');
   }
 
-  // ---------- timer ----------
-  function startTicker() {
-    clearInterval(ticker);
-    ticker = setInterval(() => {
-      renderTimer();
-      if (remaining() <= 0) timeUp();
-    }, 250);
+  // ---------- actions ----------
+  async function newGame() {
+    $('#homeErr').textContent = '';
+    try {
+      let c;
+      for (let i = 0; i < 8; i++) {
+        c = Array.from({ length: 4 }, () => CODE_CHARS[Math.floor(Math.random() * CODE_CHARS.length)]).join('');
+        if (!(await db.ref('games/' + c).get()).exists()) break;
+      }
+      await db.ref('games/' + c).set({ created: TS, mins: Number(data.settings.roundMinutes) || 5, round: 1 });
+      go({ game: c });
+    } catch (e) { $('#homeErr').textContent = 'Could not start a game. Check your internet connection and try again.'; }
   }
-  function timeUp() {
-    clearInterval(ticker); ticker = null;
-    state.timeLeft = 0; state.endsAt = null;
-    render();
-    if (state.phase === 'play') openModal('#upModal');
+
+  async function joinGame(raw) {
+    const c = raw.trim().toUpperCase();
+    $('#homeErr').textContent = '';
+    if (!/^[A-HJ-NP-Z2-9]{4}$/.test(c)) { $('#homeErr').textContent = 'Game codes are 4 letters or numbers, like K7QM.'; return; }
+    try {
+      if (!(await db.ref('games/' + c).get()).exists()) { $('#homeErr').textContent = `There’s no game with code ${c}. Check it with the other player.`; return; }
+      go({ game: c });
+    } catch { $('#homeErr').textContent = 'Could not reach the game server. Check your internet connection.'; }
   }
+
+  async function claim(s) {
+    const input = $('#name-' + s);
+    const name = (input && input.value.trim()) || (s === 'p1' ? 'Player 1' : 'Player 2');
+    const res = await gref('players/' + s).transaction(cur => (!cur || cur.client === CLIENT) ? { name: name.slice(0, 24), client: CLIENT, online: true } : undefined);
+    if (!res.committed) { $('#lobbyErr').textContent = 'Someone just took that seat. Choose the other one.'; return; }
+    go({ game: code, p: s === 'p1' ? 1 : 2 });
+  }
+
+  function lockPick() {
+    if (!pickId) return;
+    store.set(secretKey(), pickId);
+    rref('locked/' + seat).set(true);
+  }
+
   function toggleTimer() {
-    if (state.endsAt) { state.timeLeft = remaining(); state.endsAt = null; clearInterval(ticker); ticker = null; }
-    else if (state.timeLeft > 0) { state.endsAt = Date.now() + state.timeLeft; startTicker(); }
-    render();
+    rref('timer').transaction(cur => {
+      const t = cur || timerState();
+      if (t.endsAt) return { total: t.total, left: Math.max(0, t.endsAt - now()), endsAt: null };
+      if (t.left <= 0) return t;
+      return { total: t.total, left: t.left, endsAt: now() + t.left };
+    });
   }
   function addMinute() {
-    if (state.endsAt) state.endsAt += 60000; else state.timeLeft += 60000;
-    state.total += 60000;
-    render();
+    rref('timer').transaction(cur => {
+      const t = cur || timerState();
+      return t.endsAt ? { ...t, total: t.total + 60000, endsAt: Math.max(t.endsAt, now()) + 60000 } : { ...t, total: t.total + 60000, left: t.left + 60000 };
+    });
+    upShownFor = null;
   }
 
-  // ---------- flow ----------
-  function lockPick() {
-    if (!state.pickId) return;
-    state.mineId = state.pickId; state.phase = 'play'; state.out = [];
-    state.total = state.timeLeft = state.mins * 60000; state.endsAt = null;
-    state.concealed = false;
-    render();
+  function ask(text) {
+    text = text.trim().slice(0, 140);
+    if (!text) return;
+    rref('qa').push({ from: seat, text, at: TS });
+    if (!timerStarted()) toggleTimer(); // the first question starts the clock
   }
-
-  function setGuessing(on) { guessing = on && state.phase === 'play'; render(); }
+  function answer(qid, ans) {
+    const r = R(), myGuess = r.guess && r.guess[seat];
+    // After answering it's my turn to ask, unless I've already locked in my guess.
+    rref('').update({ [`qa/${qid}/ans`]: ans, turn: myGuess ? other(seat) : seat });
+  }
 
   function lockGuess(id) {
     guessing = false;
-    if (state.endsAt) { state.timeLeft = remaining(); state.endsAt = null; }
-    clearInterval(ticker); ticker = null;
-    state.guessId = id; state.phase = 'result'; state.resolved = null;
-    render(); showResult();
+    const r = R(), list = qaList();
+    const updates = { [`guess/${seat}`]: id };
+    // I'm done asking: hand the turn over if it was mine.
+    if ((r.turn || 'p1') === seat && !list.some(q => q.from === seat && !q.ans)) updates.turn = other(seat);
+    rref('').update(updates);
   }
 
-  function showResult() {
-    const g = person(state.guessId), m = person(state.mineId);
-    const fill = (k, p) => {
-      $(`#res${k}Img`).src = p.image; $(`#res${k}Img`).style.objectPosition = `50% ${Number(p.imageY ?? 20)}%`;
-      $(`#res${k}Name`).textContent = p.name; $(`#res${k}Role`).textContent = p.position;
-    };
-    fill('Guess', g); fill('Mine', m);
-    const r = state.resolved;
-    $('#resTitle').textContent = r === true ? 'You got it!' : r === false ? 'Not this time' : 'Time to reveal';
-    $('#resMsg').textContent = r === true
-      ? 'Nice work. If the other team also guessed right, both teams win this round.'
-      : r === false
-        ? 'The other team keeps their secret this round. If they guessed your person, they win.'
-        : 'Show your secret person to the other team and ask them to reveal theirs. Then tell us how you did.';
-    $('#resAsk').classList.toggle('hidden', r !== null);
-    $('#resNext').classList.toggle('hidden', r === null);
-    openModal('#resultModal');
-  }
-
-  function resolve(right) {
-    state.resolved = right;
-    if (right) state.wins++;
-    render(); showResult();
-  }
-
-  function newRound(bumpRound) {
-    clearInterval(ticker); ticker = null; guessing = false;
-    if (bumpRound) state.round++;
-    Object.assign(state, { phase: 'pick', pickId: null, mineId: null, out: [], timeLeft: 0, total: 0, endsAt: null, guessId: null, resolved: null, concealed: false });
-    closeModals(); render();
+  function playAgain() {
+    const n = game.round || 1;
+    gref('round').transaction(cur => (cur || 1) === n ? n + 1 : cur);
   }
 
   // ---------- modals ----------
-  function openModal(sel) { closeModals(); $(sel).classList.add('show'); const b = $(sel).querySelector('button'); if (b) b.focus(); }
+  function openModal(sel) { document.querySelectorAll('.modal.show').forEach(m => { if ('#' + m.id !== sel) m.classList.remove('show'); }); $(sel).classList.add('show'); }
+  function closeModal(sel) { $(sel).classList.remove('show'); }
   function closeModals() { document.querySelectorAll('.modal.show').forEach(m => m.classList.remove('show')); }
-
   function showInfo(id) {
     const p = person(id); if (!p) return;
     $('#bioImg').src = p.image; $('#bioImg').style.objectPosition = `50% ${Number(p.imageY ?? 20)}%`;
-    $('#bioName').textContent = p.name;
-    $('#bioRole').textContent = p.position;
+    $('#bioName').textContent = p.name; $('#bioRole').textContent = p.position;
     const facts = (p.facts || []).filter(Boolean);
     $('#bioFacts').innerHTML = facts.length ? facts.map(f => `<li>${esc(f)}</li>`).join('') : '<li>No facts added yet.</li>';
     $('#bioSrc').innerHTML = p.source ? `Read more on <a href="${esc(p.source)}" target="_blank" rel="noopener">Wikipedia</a>` : '';
@@ -260,14 +499,19 @@
 
   // ---------- events ----------
   function cardAction(id) {
-    if (state.phase === 'pick') { state.pickId = state.pickId === id ? null : id; render(); return; }
-    if (state.phase !== 'play') return;
-    if (guessing) {
-      if (state.out.includes(id)) return;
-      return lockGuess(id);
+    if (!game || !seat) return;
+    const ph = phase(), r = R();
+    if (ph === 'pick') {
+      if (r.locked && r.locked[seat]) return;
+      pickId = pickId === id ? null : id; renderGame(); return;
     }
-    state.out = state.out.includes(id) ? state.out.filter(x => x !== id) : [...state.out, id];
-    render();
+    if (ph !== 'play') return;
+    if (needSecret) { store.set(secretKey(), id); needSecret = false; rref(`reveal/${seat}`).set(id); return; }
+    const out = myOut();
+    if (guessing) { if (!out.has(id)) lockGuess(id); return; }
+    out.has(id) ? out.delete(id) : out.add(id);
+    store.set(outKey(), [...out]);
+    renderGame();
   }
   grid.addEventListener('click', e => {
     const info = e.target.closest('.info');
@@ -278,24 +522,43 @@
     if (e.target.classList.contains('card') && (e.key === 'Enter' || e.key === ' ')) { e.preventDefault(); cardAction(e.target.dataset.id); }
   });
 
-  $('#minus').addEventListener('click', () => { state.mins = Math.max(1, state.mins - 1); render(); });
-  $('#plus').addEventListener('click', () => { state.mins = Math.min(30, state.mins + 1); render(); });
+  $('#newGame').addEventListener('click', newGame);
+  $('#joinForm').addEventListener('submit', e => { e.preventDefault(); joinGame($('#joinCode').value); });
+  $('#seats').addEventListener('click', e => {
+    const b = e.target.closest('button'); if (!b) return;
+    if (b.dataset.claim) claim(b.dataset.claim);
+    if (b.dataset.go) go({ game: code, p: b.dataset.go === 'p1' ? 1 : 2 });
+    if (b.dataset.take) { gref(`players/${b.dataset.take}/client`).set(CLIENT).then(() => go({ game: code, p: b.dataset.take === 'p1' ? 1 : 2 })); }
+  });
+  $('#seats').addEventListener('keydown', e => { if (e.key === 'Enter' && e.target.id && e.target.id.startsWith('name-')) claim(e.target.id.slice(5)); });
+  $('#copyLobby').addEventListener('click', () => copy(linkFor(code)));
+  $('#copyPick').addEventListener('click', () => copy(linkFor(code)));
+
+  $('#players').addEventListener('change', e => {
+    if (e.target.id !== 'myName') return;
+    const v = e.target.value.trim().slice(0, 24);
+    if (v) gref(`players/${seat}/name`).set(v); else e.target.value = pname(seat);
+  });
+  $('#players').addEventListener('keydown', e => { if (e.target.id === 'myName' && e.key === 'Enter') e.target.blur(); });
+
+  $('#minus').addEventListener('click', () => gref('mins').set(Math.max(1, (game.mins || 5) - 1)));
+  $('#plus').addEventListener('click', () => gref('mins').set(Math.min(30, (game.mins || 5) + 1)));
   $('#lockPick').addEventListener('click', lockPick);
+  $('#pickSlot').addEventListener('click', e => {
+    if (e.target.id !== 'unlock') return;
+    pickId = mySecret(); rref('locked/' + seat).remove();
+  });
+  $('#mySlot').addEventListener('click', e => { if (e.target.id === 'toggleHide') { concealed = !concealed; renderGame(); } });
   $('#startBtn').addEventListener('click', toggleTimer);
   $('#addMin').addEventListener('click', addMinute);
-  $('#guessBtn').addEventListener('click', () => setGuessing(!guessing));
-  $('#upGuess').addEventListener('click', () => { closeModals(); setGuessing(true); });
-  $('#mySlot').addEventListener('click', e => { if (e.target.id === 'toggleHide') { state.concealed = !state.concealed; render(); } });
-  $('#gotIt').addEventListener('click', () => resolve(true));
-  $('#missed').addEventListener('click', () => resolve(false));
-  $('#again').addEventListener('click', () => newRound(true));
+  $('#askArea').addEventListener('submit', e => { e.preventDefault(); const t = $('#askText'); ask(t.value); t.value = ''; t.blur(); });
+  $('#askArea').addEventListener('change', e => { if (e.target.id === 'askPick' && e.target.value) { $('#askText').value = e.target.value; e.target.value = ''; $('#askText').focus(); } });
+  $('#askArea').addEventListener('click', e => { const b = e.target.closest('[data-ans]'); if (b) answer(b.dataset.q, b.dataset.ans); });
+  $('#guessBtn').addEventListener('click', () => { guessing = !guessing; renderGame(); });
+  $('#upGuess').addEventListener('click', () => { closeModal('#upModal'); guessing = true; renderGame(); });
+  $('#again').addEventListener('click', playAgain);
   $('#howBtn').addEventListener('click', () => openModal('#howModal'));
-  $('#newRound').addEventListener('click', () => {
-    if (state.phase === 'play' && !confirm('Start a new round? This round’s progress will be lost.')) return;
-    newRound(state.phase !== 'pick');
-  });
   document.querySelectorAll('.modal').forEach(m => m.addEventListener('click', e => {
-    // the result and time's-up screens need an answer; the others close on backdrop click
     if (m.id === 'resultModal' || m.id === 'upModal') return;
     if (e.target === m || e.target.closest('[data-close]')) m.classList.remove('show');
   }));
@@ -303,8 +566,19 @@
     if (e.key !== 'Escape') return;
     const open = document.querySelector('.modal.show');
     if (open && open.id !== 'resultModal' && open.id !== 'upModal') open.classList.remove('show');
-    else if (guessing) setGuessing(false);
+    else if (guessing) { guessing = false; renderGame(); }
   });
+  new ResizeObserver(() => layout()).observe(board);
 
-  load().catch(err => { grid.innerHTML = `<div class="hint">Could not load the game. ${esc(err.message)}</div>`; });
+  // ---------- start ----------
+  fetch('data/data.json?v=' + Date.now(), { cache: 'no-store' })
+    .then(r => r.json())
+    .then(d => {
+      data = d;
+      $('#title').textContent = data.settings.title || 'Guess Who?';
+      $('#edition').textContent = data.settings.edition || '';
+      if (document.fonts) document.fonts.ready.then(layout);
+      route();
+    })
+    .catch(err => { show('home'); $('#homeErr').textContent = 'Could not load the game. ' + err.message; });
 })();

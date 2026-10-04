@@ -7,17 +7,18 @@ The game has no admin buttons or links. Only `/admin` can change people, photos,
 
 ## How to play
 
-Two teams compete head-to-head to work out each other's secret person. Every person on the board is a prominent Muslim figure, historical or contemporary. Each team plays on its own laptop with the game open. The two laptops don't need to be connected.
+Two players compete head-to-head, live, from two different laptops, to work out each other's secret person. Every person on the board is a prominent Muslim figure, historical or contemporary.
 
-1. Each team secretly chooses one person from the board and locks them in. That's who the other team has to guess.
-2. Don't know someone? Click the **i** on their card for a short bio and a few facts.
-3. Start the timer. Teams take turns asking the other team one yes-or-no question at a time. There's no limit on how many questions you ask.
-4. Click a card to rule that person out. Click it again to bring them back.
-5. Each team gets 5 minutes in total to ask questions. Facilitators can change the time with the − and + buttons before a round, or add a minute during one.
-6. When you're sure, or when time runs out, lock in your guess.
-7. Both teams reveal their secret person. If both teams guess correctly, both teams win.
+1. One player opens the game and clicks **Start a new game**. They get a 4-letter game code and a link to send to the other player.
+2. Each player chooses **Player 1** or **Player 2** and types their name. Each player then has their own link (`?game=CODE&p=1` or `&p=2`). You can change your name at the top of the screen at any time.
+3. Each player secretly picks a person from the board and locks them in. Click the **i** on a card to learn about someone. Before the round, either player can change the time limit (5 minutes by default).
+4. When both are locked in, the round starts. The timer starts with the first question, and both screens show the same clock. Either player can pause it or add a minute.
+5. Players take turns. You type a yes-or-no question (or pick an example). It appears on the other player's screen, they tap **Yes** or **No**, and then it's their turn. There's no limit on questions.
+6. Click a card to rule that person out. Click it again to bring them back.
+7. When you're sure, or when time runs out, lock in your guess.
+8. Once both players have guessed, both secret people are revealed on both screens. If both guessed right, both win. Click **Play another round** to keep score across rounds.
 
-If the page is refreshed by accident, the round picks up where it left off.
+Each player's secret person stays on their own laptop until both have guessed. If a laptop refreshes or reconnects, the player rejoins the same game automatically.
 
 ## Admin
 
@@ -43,7 +44,8 @@ The site is hosted on GitHub Pages, which can't run a server. The admin page sav
 - `admin/`: the admin page.
 - `data/data.json`: all people, facts, example questions and settings.
 - `uploads/`: the photos.
+- `firebase-config.js`, `database.rules.json`, `firebase.json`: the live-game connection to the Firebase project `seeds-guess-who` (Realtime Database). Games are stored under `/games/CODE`.
 
-To preview locally, run a static server in this folder (for example `python -m http.server`) and open http://localhost:8000.
+To preview locally, run a static server (the live games still go through Firebase) in this folder (for example `python -m http.server`) and open http://localhost:8000.
 
 Photos come from Wikimedia Commons, and each person's source page is stored in `data.json`. Most of these images are CC-licensed and need credit if you republish them outside the game.
