@@ -3,67 +3,33 @@
   const esc = s => String(s ?? '').replace(/[&<>"']/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
   const uid = (p, name) => p + '-' + String(name || '').toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/^-|-$/g, '').slice(0, 20) + '-' + Math.random().toString(36).slice(2, 6);
 
-  // Which repo to save to. On GitHub Pages this is read from the address
-  // (owner.github.io/repo/admin/); anywhere else it falls back to these.
-  const REPO = (() => {
-    const fallback = { owner: 'ReemAbdelazim', repo: 'guess-who' };
-    const m = /^([^.]+)\.github\.io$/i.exec(location.hostname);
-    const seg = location.pathname.split('/').filter(Boolean)[0];
-    return m && seg && seg !== 'admin' ? { owner: m[1], repo: seg } : fallback;
-  })();
-  const BRANCH = 'main';
-  const GH = `https://api.github.com/repos/${REPO.owner}/${REPO.repo}`;
-  document.querySelectorAll('#repoName, #repoName2').forEach(el => (el.textContent = REPO.repo));
+  // Admin signs in to Firebase as this one account; the password is the only thing people type.
+  // The database rules only let this account edit content or pause / add time to games.
+  const ADMIN_EMAIL = 'admin@seeds-guess-who.web.app';
 
-  let token = null;
-  try { token = sessionStorage.getItem('gw-token') || localStorage.getItem('gw-token'); } catch {}
-  let data = null, dataSha = null, dirty = false;
-  const previews = {}; // repo path -> local blob URL, shown until GitHub Pages publishes the new photo
+  firebase.initializeApp(window.FIREBASE_CONFIG);
+  const auth = firebase.auth(), db = firebase.database();
+  let offset = 0;
+  db.ref('.info/serverTimeOffset').on('value', s => { offset = s.val() || 0; });
+  const now = () => Date.now() + offset;
 
-  // Image paths in data.json are relative to the site root; this page lives one folder down.
-  const src = path => previews[path] || (/^(https?:|data:|blob:)/.test(path) ? path : '../' + path);
+  let data = null, dirty = false;
 
-  // ---------- GitHub api ----------
-  async function gh(path, method = 'GET', body) {
-    const r = await fetch(GH + path, {
-      method, cache: 'no-store',
-      headers: { Accept: 'application/vnd.github+json', Authorization: 'Bearer ' + token, ...(body ? { 'Content-Type': 'application/json' } : {}) },
-      body: body ? JSON.stringify(body) : undefined,
-    });
-    const j = await r.json().catch(() => ({}));
-    if (r.status === 401) { signOut(); throw new Error('GitHub did not accept that token. Check it and sign in again.'); }
-    if (r.status === 409 || (r.status === 422 && /sha/i.test(j.message || ''))) throw new Error('Someone else saved changes meanwhile. Reload the page to get them, then redo your edit.');
-    if (r.status === 403 || r.status === 404) throw new Error(`This token can't access ${REPO.repo}. Give it Contents: Read and write on that repository.`);
-    if (!r.ok) throw new Error(j.message || 'GitHub request failed (' + r.status + ')');
-    return j;
-  }
-  const toB64 = str => {
-    const b = new TextEncoder().encode(str); let s = '';
-    for (let i = 0; i < b.length; i += 0x8000) s += String.fromCharCode(...b.subarray(i, i + 0x8000));
-    return btoa(s);
-  };
-  const fromB64 = b64 => new TextDecoder().decode(Uint8Array.from(atob(b64.replace(/\s/g, '')), c => c.charCodeAt(0)));
-  const blobToB64 = blob => new Promise((res, rej) => { const fr = new FileReader(); fr.onload = () => res(String(fr.result).split(',')[1]); fr.onerror = rej; fr.readAsDataURL(blob); });
+  // Starter photos are files next to the game (uploads/...); new ones are stored inline as data URLs.
+  const src = path => (/^(https?:|data:|blob:)/.test(path) ? path : '../' + path);
 
-  // Shrink to at most 800px on the long side, as JPEG, so the repo and the game stay fast.
-  async function toJpeg(blob) {
+  const blobToDataUrl = blob => new Promise((res, rej) => { const fr = new FileReader(); fr.onload = () => res(String(fr.result)); fr.onerror = rej; fr.readAsDataURL(blob); });
+
+  // Shrink to at most 480px on the long side, as JPEG, so the game loads fast.
+  async function savePhoto(blob) {
     const bmp = await createImageBitmap(blob);
-    const k = Math.min(1, 800 / Math.max(bmp.width, bmp.height));
+    const k = Math.min(1, 480 / Math.max(bmp.width, bmp.height));
     const c = document.createElement('canvas');
     c.width = Math.round(bmp.width * k); c.height = Math.round(bmp.height * k);
     const ctx = c.getContext('2d'); ctx.fillStyle = '#fff'; ctx.fillRect(0, 0, c.width, c.height);
     ctx.drawImage(bmp, 0, 0, c.width, c.height);
-    return new Promise(r => c.toBlob(r, 'image/jpeg', 0.86));
-  }
-
-  // Commit a photo to uploads/ and return its path.
-  async function savePhoto(blob, name) {
-    const jpg = await toJpeg(blob);
-    const slug = String(name || 'photo').toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/^-|-$/g, '').slice(0, 40) || 'photo';
-    const path = `uploads/${slug}-${Math.random().toString(16).slice(2, 8)}.jpg`;
-    await gh('/contents/' + path, 'PUT', { message: `Add photo for ${name || 'a person'}`, content: await blobToB64(jpg), branch: BRANCH });
-    previews[path] = URL.createObjectURL(jpg);
-    return path;
+    const jpg = await new Promise(r => c.toBlob(r, 'image/jpeg', 0.82));
+    return blobToDataUrl(jpg);
   }
 
   // Look a person up on Wikipedia (name, exact title or page link) and download the page's main photo.
@@ -99,37 +65,124 @@
   window.addEventListener('beforeunload', e => { if (dirty) { e.preventDefault(); e.returnValue = ''; } });
 
   // ---------- sign in ----------
-  function forget() { try { sessionStorage.removeItem('gw-token'); localStorage.removeItem('gw-token'); } catch {} }
-  function signOut() { token = null; forget(); $('#app').classList.add('hidden'); $('#login').classList.remove('hidden'); }
-  $('#signout').addEventListener('click', () => {
-    if (dirty && !confirm('You have unsaved changes. Sign out anyway?')) return;
-    setDirty(false); signOut();
-  });
   $('#loginForm').addEventListener('submit', async e => {
     e.preventDefault(); $('#loginErr').textContent = '';
-    token = $('#pw').value.trim();
+    const btn = $('#loginBtn'); btn.disabled = true; btn.textContent = 'Signing in…';
     try {
-      await start();
-      forget();
-      try { ($('#remember').checked ? localStorage : sessionStorage).setItem('gw-token', token); } catch {}
+      await auth.signInWithEmailAndPassword(ADMIN_EMAIL, $('#pw').value);
       $('#pw').value = '';
-    } catch (err) { token = null; $('#loginErr').textContent = err.message; }
+    } catch (err) {
+      const c = err.code || '';
+      $('#loginErr').textContent =
+        /wrong-password|invalid-credential|invalid-login|user-not-found/.test(c) ? 'That password isn’t right.'
+        : /too-many-requests/.test(c) ? 'Too many tries. Wait a few minutes, then try again.'
+        : /operation-not-allowed|configuration-not-found/.test(c) ? 'Admin sign-in isn’t switched on yet in Firebase.'
+        : /network/.test(c) ? 'No internet connection. Check it and try again.'
+        : 'Could not sign in. ' + (err.message || '');
+    } finally { btn.disabled = false; btn.textContent = 'Sign in'; }
+  });
+  $('#signout').addEventListener('click', () => {
+    if (dirty && !confirm('You have unsaved changes. Sign out anyway?')) return;
+    setDirty(false); auth.signOut();
+  });
+  auth.onAuthStateChanged(u => {
+    if (u && u.email === ADMIN_EMAIL) start().catch(err => toast('Could not load the game data. ' + err.message, true));
+    else { stopLive(); $('#app').classList.add('hidden'); $('#login').classList.remove('hidden'); }
   });
 
   async function start() {
-    const repo = await gh('');
-    if (!repo.permissions || !repo.permissions.push) throw new Error(`This token can read ${REPO.repo} but can't save to it. Set Contents to Read and write.`);
-    const f = await gh(`/contents/data/data.json?ref=${BRANCH}`);
-    data = JSON.parse(fromB64(f.content)); dataSha = f.sha;
+    const snap = await db.ref('content').get();
+    data = snap.exists() ? snap.val() : await (await fetch('../data/data.json?v=' + Date.now(), { cache: 'no-store' })).json();
+    data.people = Array.isArray(data.people) ? data.people : Object.values(data.people || {});
+    data.questions = Array.isArray(data.questions) ? data.questions : Object.values(data.questions || {});
+    data.people.forEach(p => { p.facts = Array.isArray(p.facts) ? p.facts : Object.values(p.facts || {}); });
     data.settings = data.settings || {};
     $('#login').classList.add('hidden'); $('#app').classList.remove('hidden');
     renderPeople(); renderQuestions(); renderSettings(); setDirty(false);
+    startLive();
   }
+
+  // ---------- live games ----------
+  let gamesRef = null, games = {}, liveTick = null;
+  const fmt = ms => { const s = Math.max(0, Math.ceil(ms / 1000)); return Math.floor(s / 60) + ':' + String(s % 60).padStart(2, '0'); };
+  const ago = t => { const m = Math.round((now() - t) / 60000); return m < 1 ? 'just now' : m < 60 ? m + ' min ago' : Math.round(m / 60) + ' h ago'; };
+  function roundOf(g) { return (g.rounds && g.rounds['r' + (g.round || 1)]) || {}; }
+  function timerOf(g) { const t = roundOf(g).timer, total = (Number(g.mins) || 5) * 60000; return t || { total, left: total, endsAt: null }; }
+  function remainingOf(g) { const t = timerOf(g); return t.endsAt ? Math.max(0, t.endsAt - now()) : t.left; }
+  function started(g) { const t = timerOf(g); return !!t.endsAt || t.left < t.total; }
+  function phaseOf(g) {
+    const r = roundOf(g), lk = r.locked || {}, rv = r.reveal || {}, gs = r.guess || {};
+    if (!(lk.p1 && lk.p2)) return ['Choosing people', ''];
+    if (rv.p1 && rv.p2) return ['Round finished', 'ok'];
+    if (gs.p1 || gs.p2) return ['Guessing', 'warn'];
+    return ['Asking questions', 'ok'];
+  }
+
+  function startLive() {
+    if (gamesRef) return;
+    gamesRef = db.ref('games').orderByChild('created').startAt(Date.now() - 24 * 3600 * 1000);
+    gamesRef.on('value', snap => { games = snap.val() || {}; renderGames(); }, err => toast('Could not load live games. ' + err.message, true));
+    liveTick = setInterval(tickClocks, 500);
+  }
+  function stopLive() { if (gamesRef) gamesRef.off(); gamesRef = null; clearInterval(liveTick); }
+
+  function renderGames() {
+    const list = Object.entries(games).sort((a, b) => (b[1].created || 0) - (a[1].created || 0));
+    if (!list.length) { $('#games').innerHTML = '<div class="empty-state">No games in the last 24 hours. Games appear here as soon as a player clicks “Start a new game”.</div>'; return; }
+    $('#games').innerHTML = list.map(([code, g]) => {
+      const pl = g.players || {}, [phase, tone] = phaseOf(g), t = timerOf(g), on = started(g), running = !!t.endsAt;
+      const lockedIn = phase === 'Choosing people';
+      const who = s => `<span><i class="dot ${pl[s] && pl[s].online ? 'on' : ''}"></i>${pl[s] ? esc(pl[s].name) : '<em style="color:var(--muted)">Not joined</em>'}</span>`;
+      return `<div class="game" data-code="${code}">
+        <div class="top"><span class="code">${code}</span><span class="age">Round ${g.round || 1} · started ${ago(g.created || now())}</span></div>
+        <div class="who">${who('p1')}${who('p2')}</div>
+        <div class="state"><span class="clock" data-clock="${code}">${fmt(remainingOf(g))}</span>
+          <span class="pill ${tone}">${phase}</span><span>${!on ? 'Not started' : running ? 'Running' : remainingOf(g) > 0 ? 'Paused' : 'Time’s up'}</span></div>
+        ${lockedIn || !on ? `<div class="stepper">Time limit <button data-act="minus" aria-label="Less time">−</button><b>${g.mins || 5} min</b><button data-act="plus" aria-label="More time">+</button></div>` : ''}
+        <div class="ctl">
+          ${!lockedIn ? (running ? '<button class="btn btn-ghost" data-act="pause">Pause</button>' : `<button class="btn btn-primary" data-act="resume">${on ? 'Resume' : 'Start'}</button>`) : ''}
+          ${!lockedIn ? '<button class="btn btn-ghost" data-act="add">+1 min</button>' : ''}
+          ${!lockedIn ? '<button class="btn btn-ghost" data-act="sub">−1 min</button>' : ''}
+        </div>
+      </div>`;
+    }).join('');
+  }
+
+  function tickClocks() {
+    document.querySelectorAll('[data-clock]').forEach(el => {
+      const g = games[el.dataset.clock]; if (!g) return;
+      const ms = remainingOf(g);
+      el.textContent = fmt(ms);
+      el.classList.toggle('low', ms > 0 && ms <= 60000);
+      el.classList.toggle('done', started(g) && ms <= 0);
+    });
+  }
+
+  $('#games').addEventListener('click', e => {
+    const b = e.target.closest('[data-act]'); if (!b) return;
+    const code = b.closest('.game').dataset.code, g = games[code]; if (!g) return;
+    const act = b.dataset.act, base = `games/${code}`;
+    if (act === 'minus' || act === 'plus') {
+      const mins = Math.min(60, Math.max(1, (g.mins || 5) + (act === 'plus' ? 1 : -1)));
+      const up = { [base + '/mins']: mins };
+      return db.ref().update(up).catch(err => toast(err.message, true));
+    }
+    db.ref(`${base}/rounds/r${g.round || 1}/timer`).transaction(cur => {
+      const t = cur || timerOf(g), rem = t.endsAt ? Math.max(0, t.endsAt - now()) : t.left;
+      if (act === 'pause') return { total: t.total, left: rem, endsAt: null };
+      if (act === 'resume') return rem > 0 ? { total: t.total, left: rem, endsAt: now() + rem } : t;
+      const d = act === 'add' ? 60000 : -60000;
+      if (act === 'sub' && rem <= 0) return t;
+      const total = Math.max(60000, t.total + d), left = Math.max(0, rem + d);
+      return t.endsAt ? { total, left, endsAt: now() + left } : { total, left, endsAt: null };
+    }).catch(err => toast(err.message, true));
+  });
 
   // ---------- tabs ----------
   document.querySelectorAll('nav button').forEach(b => b.addEventListener('click', () => {
     document.querySelectorAll('nav button').forEach(x => x.classList.toggle('on', x === b));
     document.querySelectorAll('[data-panel]').forEach(p => p.classList.toggle('hidden', p.dataset.panel !== b.dataset.tab));
+    $('#save').classList.toggle('hidden', b.dataset.tab === 'live');
     if (b.dataset.tab === 'questions') renderQuestions();
   }));
 
@@ -199,7 +252,7 @@
       const thumb = row.querySelector('.thumb'); thumb.classList.add('busy'); b.disabled = true;
       try {
         const r = await wikiLookup(q);
-        p.image = await savePhoto(r.blob, p.name || r.title); p.source = r.pageUrl;
+        p.image = await savePhoto(r.blob); p.source = r.pageUrl;
         if (!p.position && r.description) p.position = r.description.replace(/\s*\(.*?\)\s*/g, ' ').trim().replace(/^./, c => c.toUpperCase());
         renderPeople(); setDirty(); toast(`Photo added from “${r.title}”. Click Save changes to use it.`);
       } catch (err) { msg.textContent = err.message; thumb.classList.remove('busy'); b.disabled = false; }
@@ -212,7 +265,7 @@
     const row = $(`.person[data-i="${uploadFor}"]`), thumb = row && row.querySelector('.thumb');
     if (thumb) thumb.classList.add('busy');
     try {
-      p.image = await savePhoto(f, p.name || 'upload'); p.source = '';
+      p.image = await savePhoto(f); p.source = '';
       renderPeople(); setDirty(); toast('Photo uploaded. Click Save changes to use it.');
     } catch (err) { if (thumb) thumb.classList.remove('busy'); toast(err.message, true); }
   });
@@ -274,15 +327,13 @@
     if (data.questions.some(q => !q.text.trim())) return toast('Every question needs text.', true);
     const btn = $('#save'); btn.disabled = true; btn.textContent = 'Saving…';
     try {
-      const r = await gh('/contents/data/data.json', 'PUT', {
-        message: 'Update Guess Who people, facts and questions',
-        content: toB64(JSON.stringify(data, null, 2) + '\n'), sha: dataSha, branch: BRANCH,
-      });
-      dataSha = r.content.sha; setDirty(false);
-      toast('Saved. The game updates in about a minute.');
-    } catch (err) { toast(err.message, true); }
+      await db.ref('content').set(JSON.parse(JSON.stringify(data)));
+      setDirty(false);
+      toast('Saved. New games use these changes right away.');
+    } catch (err) {
+      toast(/permission/i.test(err.message) ? 'Saving was blocked. Sign out and sign in again.' : 'Could not save. ' + err.message, true);
+    }
     finally { btn.disabled = false; btn.textContent = 'Save changes'; }
   });
 
-  if (token) start().catch(() => signOut());
 })();

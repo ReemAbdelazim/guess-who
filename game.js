@@ -79,7 +79,9 @@
     gameRef = db.ref('games/' + code);
     gameRef.on('value', snap => {
       const prevRound = game && game.round;
+      const prevTotal = game && R().timer && R().timer.total;
       game = snap.val();
+      if (prevTotal && R().timer && R().timer.total > prevTotal) { upShownFor = null; closeModal('#upModal'); }
       if (prevRound && game && game.round !== prevRound) { pickId = null; guessing = false; needSecret = false; closeModals(); }
       render();
     }, err => { $('#homeErr').textContent = 'Could not reach the game server. ' + err.message; });
@@ -350,6 +352,7 @@
       : myGuess ? (oppGuess ? 'Revealing…' : `Waiting for ${pname(opp)} to guess.`)
       : up ? 'Time is up. Lock in your guess.'
       : !timerStarted() ? 'The timer starts with the first question.'
+      : !timerState().endsAt ? 'The host has paused the timer.'
       : 'Click a card to rule that person out.';
 
     if (up && !myGuess && upShownFor !== roundKey()) { upShownFor = roundKey(); guessing = false; openModal('#upModal'); }
@@ -365,13 +368,13 @@
   function renderTimer() {
     if (!game || !seat) return;
     const t = timerState(), ms = remaining();
+    const paused = timerStarted() && !t.endsAt && ms > 0;
     $('#clock').textContent = fmt(ms);
     $('#bar').style.width = (t.total ? (ms / t.total) * 100 : 0) + '%';
     $('#timer').classList.toggle('low', ms > 0 && ms <= 60000);
     $('#timer').classList.toggle('done', timerStarted() && ms <= 0);
-    $('#startBtn').textContent = t.endsAt ? 'Pause' : timerStarted() ? 'Resume' : 'Start';
-    $('#startBtn').disabled = (timerStarted() && ms <= 0) || phase() !== 'play';
-    $('#addMin').disabled = phase() !== 'play';
+    $('#timer').classList.toggle('paused', paused);
+    $('#tstate').textContent = paused ? 'Paused by host' : t.endsAt ? '' : timerStarted() ? 'Time’s up' : 'Starts with the first question';
   }
   ticker = setInterval(() => {
     if (!game || !seat || phase() !== 'play') return;
@@ -412,7 +415,7 @@
         c = Array.from({ length: 4 }, () => CODE_CHARS[Math.floor(Math.random() * CODE_CHARS.length)]).join('');
         if (!(await db.ref('games/' + c).get()).exists()) break;
       }
-      await db.ref('games/' + c).set({ created: TS, mins: Number(data.settings.roundMinutes) || 5, round: 1 });
+      await db.ref('games/' + c).update({ created: TS, mins: Number(data.settings.roundMinutes) || 5, round: 1 });
       go({ game: c });
     } catch (e) { $('#homeErr').textContent = 'Could not start a game. Check your internet connection and try again.'; }
   }
@@ -441,27 +444,20 @@
     rref('locked/' + seat).set(true);
   }
 
-  function toggleTimer() {
+  // Players can only start the clock; pausing and adding time happen in /admin.
+  function startTimer() {
     rref('timer').transaction(cur => {
-      const t = cur || timerState();
-      if (t.endsAt) return { total: t.total, left: Math.max(0, t.endsAt - now()), endsAt: null };
-      if (t.left <= 0) return t;
+      if (cur) return; // already started (or changed by the host)
+      const t = timerState();
       return { total: t.total, left: t.left, endsAt: now() + t.left };
     });
-  }
-  function addMinute() {
-    rref('timer').transaction(cur => {
-      const t = cur || timerState();
-      return t.endsAt ? { ...t, total: t.total + 60000, endsAt: Math.max(t.endsAt, now()) + 60000 } : { ...t, total: t.total + 60000, left: t.left + 60000 };
-    });
-    upShownFor = null;
   }
 
   function ask(text) {
     text = text.trim().slice(0, 140);
     if (!text) return;
     rref('qa').push({ from: seat, text, at: TS });
-    if (!timerStarted()) toggleTimer(); // the first question starts the clock
+    if (!timerStarted()) startTimer(); // the first question starts the clock
   }
   function answer(qid, ans) {
     const r = R(), myGuess = r.guess && r.guess[seat];
@@ -541,16 +537,12 @@
   });
   $('#players').addEventListener('keydown', e => { if (e.target.id === 'myName' && e.key === 'Enter') e.target.blur(); });
 
-  $('#minus').addEventListener('click', () => gref('mins').set(Math.max(1, (game.mins || 5) - 1)));
-  $('#plus').addEventListener('click', () => gref('mins').set(Math.min(30, (game.mins || 5) + 1)));
   $('#lockPick').addEventListener('click', lockPick);
   $('#pickSlot').addEventListener('click', e => {
     if (e.target.id !== 'unlock') return;
     pickId = mySecret(); rref('locked/' + seat).remove();
   });
   $('#mySlot').addEventListener('click', e => { if (e.target.id === 'toggleHide') { concealed = !concealed; renderGame(); } });
-  $('#startBtn').addEventListener('click', toggleTimer);
-  $('#addMin').addEventListener('click', addMinute);
   $('#askArea').addEventListener('submit', e => { e.preventDefault(); const t = $('#askText'); ask(t.value); t.value = ''; t.blur(); });
   $('#askArea').addEventListener('change', e => { if (e.target.id === 'askPick' && e.target.value) { $('#askText').value = e.target.value; e.target.value = ''; $('#askText').focus(); } });
   $('#askArea').addEventListener('click', e => { const b = e.target.closest('[data-ans]'); if (b) answer(b.dataset.q, b.dataset.ans); });
@@ -571,9 +563,14 @@
   new ResizeObserver(() => layout()).observe(board);
 
   // ---------- start ----------
-  fetch('data/data.json?v=' + Date.now(), { cache: 'no-store' })
-    .then(r => r.json())
+  // People, facts and example questions live in the database (edited in /admin);
+  // data/data.json is the starter set used until admin saves for the first time.
+  db.ref('content').get()
+    .then(snap => snap.exists() ? snap.val() : fetch('data/data.json?v=' + Date.now(), { cache: 'no-store' }).then(r => r.json()))
     .then(d => {
+      d.people = Array.isArray(d.people) ? d.people : Object.values(d.people || {});
+      d.questions = Array.isArray(d.questions) ? d.questions : Object.values(d.questions || {});
+      d.settings = d.settings || {};
       data = d;
       $('#title').textContent = data.settings.title || 'Guess Who?';
       $('#edition').textContent = data.settings.edition || '';

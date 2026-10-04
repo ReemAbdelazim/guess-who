@@ -2,12 +2,55 @@
   "rules": {
     ".read": false,
     ".write": false,
+    "content": {
+      ".read": true,
+      ".write": "auth != null && auth.token.email === 'admin@seeds-guess-who.web.app'"
+    },
     "games": {
+      ".read": "auth != null && auth.token.email === 'admin@seeds-guess-who.web.app'",
+      ".write": "auth != null && auth.token.email === 'admin@seeds-guess-who.web.app'",
       "$code": {
-        ".read": true,
-        ".write": true,
-        ".validate": "$code.matches(/^[A-HJ-NP-Z2-9]{4}$/)"
-      }
+        ".read": "$code.matches(/^[A-HJ-NP-Z2-9]{4}$/)",
+        "created": {
+          ".write": "!data.exists() && $code.matches(/^[A-HJ-NP-Z2-9]{4}$/)"
+        },
+        "mins": {
+          ".write": "!data.exists() && $code.matches(/^[A-HJ-NP-Z2-9]{4}$/)",
+          ".validate": "newData.isNumber() && newData.val() >= 1 && newData.val() <= 60"
+        },
+        "round": {
+          ".write": "$code.matches(/^[A-HJ-NP-Z2-9]{4}$/)",
+          ".validate": "newData.isNumber()"
+        },
+        "players": {
+          ".write": "$code.matches(/^[A-HJ-NP-Z2-9]{4}$/)"
+        },
+        "rounds": {
+          "$r": {
+            "locked": {
+              ".write": "$code.matches(/^[A-HJ-NP-Z2-9]{4}$/)"
+            },
+            "qa": {
+              ".write": "$code.matches(/^[A-HJ-NP-Z2-9]{4}$/)"
+            },
+            "turn": {
+              ".write": "$code.matches(/^[A-HJ-NP-Z2-9]{4}$/)"
+            },
+            "guess": {
+              ".write": "$code.matches(/^[A-HJ-NP-Z2-9]{4}$/)"
+            },
+            "reveal": {
+              ".write": "$code.matches(/^[A-HJ-NP-Z2-9]{4}$/)"
+            },
+            "timer": {
+              ".write": "!data.exists() && $code.matches(/^[A-HJ-NP-Z2-9]{4}$/)"
+            }
+          }
+        }
+      },
+      ".indexOn": [
+        "created"
+      ]
     }
   }
 }

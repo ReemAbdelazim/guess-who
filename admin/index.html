@@ -89,8 +89,7 @@
   .chips { display: flex; flex-wrap: wrap; gap: 6px; margin-left: 36px; }
   .chip { display: inline-flex; align-items: center; gap: 6px; padding: 4px 10px 4px 4px; border-radius: 999px; font-size: 12px; font-weight: 600; border: 1px solid var(--line-strong); background: transparent; color: var(--muted); }
   .chip img, .chip .ph { width: 22px; height: 22px; border-radius: 50%; object-fit: cover; background: var(--ink); }
-  .chip.yes { background: var(--green); color: var(--ink); border-color: var(--green); }
-  .chip:hover { border-color: var(--mint); }
+    .chip:hover { border-color: var(--mint); }
 
   /* settings */
   .settings { background: var(--navy); border: 1px solid var(--line); border-radius: 14px; padding: 22px; display: grid; gap: 18px; max-width: 560px; }
@@ -98,6 +97,29 @@
   .toggle input { width: 18px; height: 18px; accent-color: var(--green); }
   .note { font-size: 12px; color: var(--muted); margin: 6px 0 0; line-height: 1.5; }
 
+  /* live games */
+  #games { display: grid; grid-template-columns: repeat(auto-fill, minmax(340px, 1fr)); gap: 14px; }
+  .game { background: var(--navy); border: 1px solid var(--line); border-radius: 14px; padding: 16px; display: grid; gap: 12px; }
+  .game .top { display: flex; justify-content: space-between; align-items: baseline; gap: 10px; }
+  .game .code { font-size: 20px; font-weight: 800; letter-spacing: .16em; }
+  .game .age { font-size: 12px; color: var(--muted); }
+  .game .who { display: grid; gap: 4px; font-size: 13px; font-weight: 600; }
+  .game .who span { display: flex; align-items: center; gap: 8px; }
+  .dot { width: 8px; height: 8px; border-radius: 50%; background: #5a6b77; flex: none; }
+  .dot.on { background: var(--green); }
+  .game .state { display: flex; justify-content: space-between; align-items: center; gap: 10px; font-size: 12px; color: var(--muted); font-weight: 600; }
+  .game .clock { font-size: 30px; font-weight: 800; color: var(--white); font-variant-numeric: tabular-nums; line-height: 1; }
+  .game .clock.low { color: #f2b45a; }
+  .game .clock.done { color: var(--danger); }
+  .game .ctl { display: flex; gap: 8px; flex-wrap: wrap; }
+  .game .ctl .btn { padding: 8px 14px; font-size: 11px; }
+  .game .stepper { display: flex; align-items: center; gap: 8px; font-size: 12px; color: var(--muted); font-weight: 600; }
+  .game .stepper button { width: 28px; height: 28px; border-radius: 50%; border: 1px solid var(--line-strong); background: transparent; color: var(--white); font-size: 16px; font-weight: 700; line-height: 1; }
+  .game .stepper b { color: var(--white); min-width: 48px; text-align: center; }
+  .pill { font-size: 10px; font-weight: 800; letter-spacing: .1em; text-transform: uppercase; padding: 3px 8px; border-radius: 999px; border: 1px solid var(--line-strong); color: var(--muted); }
+  .pill.ok { background: var(--green); border-color: var(--green); color: var(--ink); }
+  .pill.warn { border-color: #f2b45a; color: #f2b45a; }
+  .empty-state { color: var(--muted); font-size: 14px; padding: 30px; text-align: center; border: 1px dashed var(--line-strong); border-radius: 14px; }
   #toast { position: fixed; bottom: 22px; left: 50%; transform: translateX(-50%) translateY(20px); opacity: 0; transition: .25s; background: var(--green); color: var(--ink); font-weight: 700; font-size: 13px; padding: 10px 18px; border-radius: 999px; pointer-events: none; z-index: 20; }
   #toast.show { opacity: 1; transform: translateX(-50%); }
   #toast.bad { background: var(--danger); color: var(--white); }
@@ -110,22 +132,11 @@
   <form class="login-card" id="loginForm">
     <img src="../assets/logo-horizontal-white.webp" alt="Seeds Congress">
     <div class="eyebrow">Guess Who · Admin</div>
-    <h1>Sign in with your GitHub token</h1>
-    <p class="note" style="margin:0 0 16px">Saving commits your changes to the <b id="repoName">guess-who</b> repository. The game updates about a minute after each save.</p>
-    <label class="f" for="pw">GitHub token</label>
-    <input class="input" id="pw" type="password" autocomplete="off" spellcheck="false" required placeholder="github_pat_…">
-    <label class="toggle" style="margin-top:12px;font-size:13px"><input type="checkbox" id="remember"> Remember on this device</label>
+    <h1>Sign in to manage the game</h1>
+    <label class="f" for="pw">Admin password</label>
+    <input class="input" id="pw" type="password" autocomplete="current-password" required>
     <p class="err" id="loginErr"></p>
-    <button class="btn btn-primary" style="width:100%;margin-top:8px">Sign in</button>
-    <details class="help">
-      <summary>How do I get a token?</summary>
-      <ol>
-        <li>Open <a href="https://github.com/settings/personal-access-tokens/new" target="_blank" rel="noopener">github.com/settings/personal-access-tokens/new</a>.</li>
-        <li>Under <b>Repository access</b>, choose <b>Only select repositories</b> and pick <b id="repoName2">guess-who</b>.</li>
-        <li>Under <b>Permissions → Repository permissions</b>, set <b>Contents</b> to <b>Read and write</b>.</li>
-        <li>Generate the token and paste it above. Keep it private: anyone with it can edit the game.</li>
-      </ol>
-    </details>
+    <button class="btn btn-primary" style="width:100%;margin-top:8px" id="loginBtn">Sign in</button>
   </form>
 </section>
 
@@ -135,7 +146,8 @@
     <div class="divider"></div>
     <div><div class="eyebrow">Admin</div><h1>Guess Who</h1></div>
     <nav>
-      <button data-tab="people" class="on">People</button>
+      <button data-tab="live" class="on">Live games</button>
+      <button data-tab="people">People</button>
       <button data-tab="questions">Example questions</button>
       <button data-tab="settings">Settings</button>
     </nav>
@@ -143,12 +155,19 @@
       <span id="dirty"></span>
       <a class="btn btn-ghost" href="../" target="_blank" rel="noopener">Open game</a>
       <button class="btn btn-ghost" id="signout">Sign out</button>
-      <button class="btn btn-primary" id="save">Save changes</button>
+      <button class="btn btn-primary hidden" id="save">Save changes</button>
     </div>
   </header>
 
   <div class="wrap">
-    <div data-panel="people">
+    <div data-panel="live">
+      <div class="bar">
+        <div><h2>Live games</h2><p>Games started in the last 24 hours, newest first. Changes here show on both players’ screens right away.</p></div>
+      </div>
+      <div id="games"></div>
+    </div>
+
+    <div data-panel="people" class="hidden">
       <div class="bar">
         <div><h2>People</h2><p>Name, position, facts and photo for each card. Players see the facts when they click the <b>i</b> on a card. “Get from Wikipedia” pulls the main photo from that person’s Wikipedia page. You can also upload a file.</p></div>
         <button class="btn btn-primary" id="addPerson">Add person</button>
@@ -172,7 +191,7 @@
         <div>
           <label class="f" for="s-mins">Default time to ask questions (minutes)</label>
           <input class="input" id="s-mins" type="number" min="1" max="30" style="max-width:120px">
-          <p class="note">Facilitators can still change the time on each laptop before a round starts.</p>
+          <p class="note">Used for every new game. To change the time for a game that’s already running, use Live games.</p>
         </div>
       </div>
     </div>
@@ -181,6 +200,10 @@
 
 <input type="file" id="file" accept="image/*" class="hidden">
 <div id="toast"></div>
+<script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-app-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-auth-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-database-compat.js"></script>
+<script src="../firebase-config.js"></script>
 <script src="admin.js"></script>
 </body>
 </html>

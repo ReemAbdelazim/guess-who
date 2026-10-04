@@ -129,8 +129,8 @@
   .timer.low .clock { color: #f2b45a; }
   .timer.done .clock { color: var(--danger); }
   .timer .bar { position: absolute; left: 0; bottom: 0; height: 3px; background: var(--green); transition: width .9s linear; }
-  .timer .tbtns { margin-left: auto; display: flex; gap: 6px; }
-  .timer .btn { padding: 7px 12px; font-size: 10.5px; }
+  .timer .tstate { margin-left: auto; font-size: 11px; font-weight: 700; letter-spacing: .08em; text-transform: uppercase; color: var(--muted); text-align: right; }
+  .timer.paused .tstate { color: #f2b45a; }
 
   .turn { font-size: 13px; font-weight: 700; padding: 9px 12px; border-radius: 10px; text-align: center; background: rgba(6,24,36,.45); border: 1px solid var(--line); }
   .turn.mine { background: rgba(79,176,109,.16); border-color: var(--green); color: var(--mint); }
@@ -273,7 +273,7 @@
         <div class="status" id="pickStatus"></div>
         <div class="stepper">
           <span class="lbl">Time to ask questions</span>
-          <span class="ctl"><button id="minus" aria-label="Less time">−</button><span class="val" id="mins">5 min</span><button id="plus" aria-label="More time">+</button></span>
+          <span class="val" id="mins">5 min</span>
         </div>
         <div class="invite hidden" id="pickInvite" style="margin:0">
           <div class="lbl">Waiting for the other player. Send them this link:</div>
@@ -287,7 +287,7 @@
         <div class="person-slot" id="mySlot"></div>
         <div class="timer" id="timer">
           <div class="clock" id="clock">5:00</div>
-          <div class="tbtns"><button class="btn btn-primary" id="startBtn">Start</button><button class="btn btn-ghost" id="addMin">+1 min</button></div>
+          <div class="tstate" id="tstate"></div>
           <div class="bar" id="bar"></div>
         </div>
         <div class="turn" id="turn"></div>
@@ -325,7 +325,7 @@
         <li>One player clicks <b>Start a new game</b> and sends the link (or the code) to the other player.</li>
         <li>Each player chooses <b>Player 1 or Player 2</b> and types their name. Each player now has their own link.</li>
         <li>Each player <b>secretly picks a person</b> from the board and locks them in. Click the <b>i</b> on a card to learn about someone.</li>
-        <li>When both are locked in, start the timer. You have <b id="howMins">5 minutes</b> in total.</li>
+        <li>When both are locked in, the timer starts with the first question. You have <b id="howMins">5 minutes</b> in total. Only the host can pause it or add time.</li>
         <li><b>Take turns</b> asking one yes-or-no question. The other player answers Yes or No on their laptop, then it’s their turn. There’s no limit on questions.</li>
         <li>Click a card to <b>rule that person out</b>. Click it again to bring them back.</li>
         <li>When you’re sure, or when time runs out, <b>lock in your guess</b>.</li>
