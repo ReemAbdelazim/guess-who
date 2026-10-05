@@ -197,6 +197,9 @@
   .duo .mini .k { font-size: 10px; font-weight: 700; letter-spacing: .1em; text-transform: uppercase; color: var(--muted); }
   .duo .mini .v { font-size: 13px; font-weight: 700; }
   .result .msg { font-size: 14px; color: var(--muted); margin: 16px 0; line-height: 1.5; }
+  .rounds { list-style: none; margin: 0 auto; padding: 0; display: grid; gap: 6px; max-width: 320px; }
+  .rounds li { display: flex; justify-content: space-between; padding: 8px 12px; border-radius: 10px; background: rgba(6,24,36,.55); border: 1px solid var(--line); font-size: 14px; }
+  .rounds li span { color: var(--muted); font-weight: 600; }
   .timesup .big { font-size: 56px; font-weight: 800; color: var(--danger); line-height: 1; margin: 8px 0; text-align: center; }
   #toast { position: fixed; bottom: 22px; left: 50%; transform: translateX(-50%) translateY(20px); opacity: 0; transition: .25s; background: var(--green); color: var(--ink); font-weight: 700; font-size: 13px; padding: 10px 18px; border-radius: 999px; pointer-events: none; z-index: 20; }
   #toast.show { opacity: 1; transform: translateX(-50%); }
@@ -278,7 +281,7 @@
         <div class="person-slot" id="pickSlot"></div>
         <div class="status" id="pickStatus"></div>
         <div class="stepper">
-          <span class="lbl">Time to ask questions</span>
+          <span class="lbl" id="minsLbl">Game time</span>
           <span class="val" id="mins">5 min</span>
         </div>
         <div class="invite hidden" id="pickInvite" style="margin:0">
@@ -331,22 +334,26 @@
         <li>One player clicks <b>Start a new game</b> and sends the link (or the code) to the other player.</li>
         <li>Each player chooses <b>Player 1 or Player 2</b> and types their name. Each player now has their own link.</li>
         <li>Each player <b>secretly picks a person</b> from the board and locks them in. Click the <b>i</b> on a card to learn about someone.</li>
-        <li>When both are locked in, press <b>Start clock</b>. You have <b id="howMins">5 minutes</b> in total. Only the host can pause it or add time.</li>
-        <li><b>Take turns</b> asking one yes-or-no question. Talk it over and ask out loud, then press <b>Done</b> to pass the turn. You can also type the question instead, and the other player answers Yes or No on their laptop. There’s no limit on questions.</li>
+        <li>When both are locked in, press <b>Start clock</b>. The whole game lasts <b id="howMins">5 minutes</b>. Only the host can pause it or add time.</li>
+        <li><b>Take turns</b> asking one yes-or-no question. Talk it over and ask out loud, then press <b>Done</b> to pass the turn. You can also type the question instead, and the other player answers Yes or No on their laptop.</li>
         <li>Click a card to <b>rule that person out</b>. Click it again to bring them back.</li>
-        <li>When you’re sure, or when time runs out, <b>lock in your guess</b>.</li>
-        <li>Once both players have guessed, both secret people are revealed. If you both guessed right, <b>you both win</b>.</li>
+        <li>When you’re sure, <b>lock in your guess</b>. That ends the round straight away: a right guess wins you the round, a wrong guess gives it to the other player.</li>
+        <li>If there’s time left, the <b>next round</b> starts automatically and you each pick a new secret person. When the clock runs out, whoever won the most rounds <b>wins the game</b>.</li>
       </ol>
     </div>
   </div>
 
-  <!-- Time's up -->
-  <div class="modal" id="upModal" role="dialog" aria-modal="true">
-    <div class="sheet" style="text-align:center">
-      <div class="eyebrow">Time’s up</div>
-      <div class="timesup"><div class="big">0:00</div></div>
-      <p class="hint" style="margin:0 0 16px">No more questions. Pick who you think the other player chose.</p>
-      <button class="btn btn-primary" id="upGuess">Lock in my guess</button>
+  <!-- Game over -->
+  <div class="modal" id="finalModal" role="dialog" aria-modal="true" aria-labelledby="finTitle">
+    <div class="sheet result">
+      <div class="eyebrow">Time’s up · Game over</div>
+      <h3 id="finTitle"></h3>
+      <ul class="rounds" id="finRounds"></ul>
+      <p class="msg" id="finMsg"></p>
+      <div class="row" style="justify-content:center">
+        <button class="btn btn-primary" id="rematch">Rematch</button>
+        <button class="btn btn-ghost" id="home">Back to start</button>
+      </div>
     </div>
   </div>
 
@@ -357,7 +364,7 @@
       <h3 id="resTitle"></h3>
       <div class="duo" id="resDuo"></div>
       <p class="msg" id="resMsg"></p>
-      <button class="btn btn-primary" id="again">Play another round</button>
+      <button class="btn btn-primary" id="again">Start next round now</button>
     </div>
   </div>
 

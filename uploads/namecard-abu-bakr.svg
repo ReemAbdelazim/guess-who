@@ -1,0 +1,17 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 400 500" width="400" height="500">
+  <defs>
+    <radialGradient id="g" cx="50%" cy="42%" r="75%">
+      <stop offset="0" stop-color="#0f3a57"/><stop offset="1" stop-color="#061824"/>
+    </radialGradient>
+  </defs>
+  <rect width="400" height="500" fill="url(#g)"/>
+  <g fill="none" stroke="#4FB06D" stroke-opacity=".22">
+    <circle cx="200" cy="215" r="120" stroke-width="14"/>
+    <circle cx="200" cy="215" r="160" stroke-width="10" stroke-opacity=".14"/>
+    <circle cx="200" cy="215" r="200" stroke-width="6" stroke-opacity=".08"/>
+  </g>
+  <polygon points="200.0,65.0 241.3,115.2 306.1,108.9 299.8,173.7 350.0,215.0 299.8,256.3 306.1,321.1 241.3,314.8 200.0,365.0 158.7,314.8 93.9,321.1 100.2,256.3 50.0,215.0 100.2,173.7 93.9,108.9 158.7,115.2" fill="none" stroke="#8AD09B" stroke-opacity=".22" stroke-width="2"/>
+  <text x="200" y="200" text-anchor="middle" direction="rtl" font-family="'Amiri','Traditional Arabic','Arabic Typesetting','Geeza Pro','Noto Naskh Arabic','Scheherazade New','Times New Roman',serif" font-size="62" font-weight="700" fill="#FFFFFF">أبو بكر</text><text x="200" y="270" text-anchor="middle" direction="rtl" font-family="'Amiri','Traditional Arabic','Arabic Typesetting','Geeza Pro','Noto Naskh Arabic','Scheherazade New','Times New Roman',serif" font-size="62" font-weight="700" fill="#FFFFFF">الصديق</text>
+  <text x="200" y="372" text-anchor="middle" direction="rtl" font-family="'Amiri','Traditional Arabic','Arabic Typesetting','Geeza Pro','Noto Naskh Arabic','Scheherazade New','Times New Roman',serif" font-size="34" fill="#8AD09B">رضي الله عنه</text>
+  <rect x="150" y="410" width="100" height="2" fill="#4FB06D" fill-opacity=".6"/>
+</svg>

@@ -18,6 +18,12 @@
           ".write": "!data.exists() && $code.matches(/^[A-HJ-NP-Z2-9]{4}$/)",
           ".validate": "newData.isNumber() && newData.val() >= 1 && newData.val() <= 60"
         },
+        "timer": {
+          ".write": "!data.exists() && $code.matches(/^[A-HJ-NP-Z2-9]{4}$/)"
+        },
+        "next": {
+          ".write": "!data.exists() && $code.matches(/^[A-HJ-NP-Z2-9]{4}$/)"
+        },
         "round": {
           ".write": "$code.matches(/^[A-HJ-NP-Z2-9]{4}$/)",
           ".validate": "newData.isNumber()"

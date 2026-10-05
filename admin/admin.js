@@ -107,14 +107,24 @@
   const fmt = ms => { const s = Math.max(0, Math.ceil(ms / 1000)); return Math.floor(s / 60) + ':' + String(s % 60).padStart(2, '0'); };
   const ago = t => { const m = Math.round((now() - t) / 60000); return m < 1 ? 'just now' : m < 60 ? m + ' min ago' : Math.round(m / 60) + ' h ago'; };
   function roundOf(g) { return (g.rounds && g.rounds['r' + (g.round || 1)]) || {}; }
-  function timerOf(g) { const t = roundOf(g).timer, total = (Number(g.mins) || 5) * 60000; return t || { total, left: total, endsAt: null }; }
+  // One clock per game; rounds keep coming until it runs out.
+  function timerOf(g) { const total = (Number(g.mins) || 5) * 60000; return g.timer || { total, left: total, endsAt: null }; }
   function remainingOf(g) { const t = timerOf(g); return t.endsAt ? Math.max(0, t.endsAt - now()) : t.left; }
   function started(g) { const t = timerOf(g); return !!t.endsAt || t.left < t.total; }
+  // Same scoring as the game: a right guess wins the round, a wrong guess gives it to the other player.
+  function scoreOf(g) {
+    const pts = { p1: 0, p2: 0 };
+    Object.values(g.rounds || {}).forEach(r => {
+      const gs = r.guess || {}, rv = r.reveal || {};
+      ['p1', 'p2'].forEach(s => { const o = s === 'p1' ? 'p2' : 'p1'; if (gs[s] && rv[o]) pts[gs[s] === rv[o] ? s : o]++; });
+    });
+    return pts;
+  }
   function phaseOf(g) {
-    const r = roundOf(g), lk = r.locked || {}, rv = r.reveal || {}, gs = r.guess || {};
+    if (started(g) && remainingOf(g) <= 0) return ['Game over', 'ok'];
+    const r = roundOf(g), lk = r.locked || {}, gs = r.guess || {};
     if (!(lk.p1 && lk.p2)) return ['Choosing people', ''];
-    if (rv.p1 && rv.p2) return ['Round finished', 'ok'];
-    if (gs.p1 || gs.p2) return ['Guessing', 'warn'];
+    if (gs.p1 || gs.p2) return ['Round result', 'warn'];
     return ['Asking questions', 'ok'];
   }
 
@@ -131,18 +141,18 @@
     if (!list.length) { $('#games').innerHTML = '<div class="empty-state">No games in the last 24 hours. Games appear here as soon as a player clicks “Start a new game”.</div>'; return; }
     $('#games').innerHTML = list.map(([code, g]) => {
       const pl = g.players || {}, [phase, tone] = phaseOf(g), t = timerOf(g), on = started(g), running = !!t.endsAt;
-      const lockedIn = phase === 'Choosing people';
-      const who = s => `<span><i class="dot ${pl[s] && pl[s].online ? 'on' : ''}"></i>${pl[s] ? esc(pl[s].name) : '<em style="color:var(--muted)">Not joined</em>'}</span>`;
+      const pts = scoreOf(g);
+      const who = s => `<span><i class="dot ${pl[s] && pl[s].online ? 'on' : ''}"></i>${pl[s] ? esc(pl[s].name) : '<em style="color:var(--muted)">Not joined</em>'}<b style="margin-left:auto">${pts[s]} won</b></span>`;
       return `<div class="game" data-code="${code}">
         <div class="top"><span class="code">${code}</span><span class="age">Round ${g.round || 1} · started ${ago(g.created || now())}</span></div>
         <div class="who">${who('p1')}${who('p2')}</div>
         <div class="state"><span class="clock" data-clock="${code}">${fmt(remainingOf(g))}</span>
           <span class="pill ${tone}">${phase}</span><span>${!on ? 'Not started' : running ? 'Running' : remainingOf(g) > 0 ? 'Paused' : 'Time’s up'}</span></div>
-        ${lockedIn || !on ? `<div class="stepper">Time limit <button data-act="minus" aria-label="Less time">−</button><b>${g.mins || 5} min</b><button data-act="plus" aria-label="More time">+</button></div>` : ''}
+        ${!on ? `<div class="stepper">Game length <button data-act="minus" aria-label="Less time">−</button><b>${g.mins || 5} min</b><button data-act="plus" aria-label="More time">+</button></div>` : ''}
         <div class="ctl">
-          ${!lockedIn ? (running ? '<button class="btn btn-ghost" data-act="pause">Pause</button>' : `<button class="btn btn-primary" data-act="resume">${on ? 'Resume' : 'Start'}</button>`) : ''}
-          ${!lockedIn ? '<button class="btn btn-ghost" data-act="add">+1 min</button>' : ''}
-          ${!lockedIn ? '<button class="btn btn-ghost" data-act="sub">−1 min</button>' : ''}
+          ${running ? '<button class="btn btn-ghost" data-act="pause">Pause</button>' : `<button class="btn btn-primary" data-act="resume">${on ? 'Resume' : 'Start clock'}</button>`}
+          <button class="btn btn-ghost" data-act="add">+1 min</button>
+          ${on ? '<button class="btn btn-ghost" data-act="sub">−1 min</button>' : ''}
         </div>
       </div>`;
     }).join('');
@@ -167,7 +177,7 @@
       const up = { [base + '/mins']: mins };
       return db.ref().update(up).catch(err => toast(err.message, true));
     }
-    db.ref(`${base}/rounds/r${g.round || 1}/timer`).transaction(cur => {
+    db.ref(`${base}/timer`).transaction(cur => {
       const t = cur || timerOf(g), rem = t.endsAt ? Math.max(0, t.endsAt - now()) : t.left;
       if (act === 'pause') return { total: t.total, left: rem, endsAt: null };
       if (act === 'resume') return rem > 0 ? { total: t.total, left: rem, endsAt: now() + rem } : t;

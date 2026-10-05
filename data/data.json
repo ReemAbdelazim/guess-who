@@ -6,97 +6,6 @@
   },
   "people": [
     {
-      "id": "salahuddin",
-      "name": "Salahuddin al-Ayyubi",
-      "position": "Sultan & Military Leader",
-      "image": "uploads/salahuddin-225359.jpg",
-      "imageY": 20,
-      "source": "https://en.wikipedia.org/wiki/Saladin",
-      "facts": [
-        "Kurdish-born founder of the Ayyubid dynasty, he ruled Egypt and Syria in the 12th century.",
-        "Recaptured Jerusalem from the Crusaders in 1187.",
-        "Respected even by his enemies for his mercy and chivalry."
-      ]
-    },
-    {
-      "id": "malala",
-      "name": "Malala Yousafzai",
-      "position": "Education Activist",
-      "image": "uploads/malala-411dcc.jpg",
-      "imageY": 20,
-      "source": "https://en.wikipedia.org/wiki/Malala_Yousafzai",
-      "facts": [
-        "Pakistani activist who campaigns for every girl’s right to go to school.",
-        "Survived being shot by the Taliban in 2012 for speaking out about girls’ education.",
-        "Won the Nobel Peace Prize in 2014 at age 17, the youngest winner ever."
-      ]
-    },
-    {
-      "id": "mohamed-salah",
-      "name": "Mohamed Salah",
-      "position": "Footballer",
-      "image": "uploads/mohamed-salah-f35463.jpg",
-      "imageY": 20,
-      "source": "https://en.wikipedia.org/wiki/Mohamed_Salah",
-      "facts": [
-        "Egyptian forward who became a star at Liverpool FC.",
-        "Has won the Premier League Golden Boot as the league’s top scorer several times.",
-        "Known for celebrating goals with sujood, a prostration of thanks."
-      ]
-    },
-    {
-      "id": "al-khwarizmi",
-      "name": "Al-Khwarizmi",
-      "position": "Mathematician & Astronomer",
-      "image": "uploads/al-khwarizmi-a2356b.jpg",
-      "imageY": 20,
-      "source": "https://en.wikipedia.org/wiki/Muhammad_ibn_Musa_al-Khwarizmi",
-      "facts": [
-        "9th-century Persian scholar who worked at the House of Wisdom in Baghdad.",
-        "His book on “al-jabr” gave us the word algebra.",
-        "The word algorithm comes from his name."
-      ]
-    },
-    {
-      "id": "zaha-hadid",
-      "name": "Zaha Hadid",
-      "position": "Architect",
-      "image": "uploads/zaha-hadid-12b08d.jpg",
-      "imageY": 20,
-      "source": "https://en.wikipedia.org/wiki/Zaha_Hadid",
-      "facts": [
-        "Iraqi-British architect famous for flowing, curved buildings.",
-        "In 2004 she became the first woman to win the Pritzker Prize, architecture’s top award.",
-        "Designed the London Aquatics Centre for the 2012 Olympics."
-      ]
-    },
-    {
-      "id": "malcolm-x",
-      "name": "Malcolm X",
-      "position": "Human Rights Activist",
-      "image": "uploads/malcolm-x-b43943.jpg",
-      "imageY": 20,
-      "source": "https://en.wikipedia.org/wiki/Malcolm_X",
-      "facts": [
-        "American minister and one of the most influential voices of the civil rights era.",
-        "After performing Hajj in 1964, he embraced Sunni Islam and took the name el-Hajj Malik el-Shabazz.",
-        "His life story, The Autobiography of Malcolm X, is still widely read."
-      ]
-    },
-    {
-      "id": "ibn-sina",
-      "name": "Ibn Sina",
-      "position": "Physician & Philosopher",
-      "image": "uploads/ibn-sina-7b72b4.jpg",
-      "imageY": 20,
-      "source": "https://en.wikipedia.org/wiki/Avicenna",
-      "facts": [
-        "Persian scholar (980–1037), known in Europe as Avicenna.",
-        "Wrote The Canon of Medicine, used to teach doctors in Europe and the Middle East for centuries.",
-        "Also wrote on philosophy, astronomy and music."
-      ]
-    },
-    {
       "id": "zohran-mamdani",
       "name": "Zohran Mamdani",
       "position": "Mayor of New York City",
@@ -110,81 +19,29 @@
       ]
     },
     {
-      "id": "ibtihaj-muhammad",
-      "name": "Ibtihaj Muhammad",
-      "position": "Olympic Fencer",
-      "image": "uploads/ibtihaj-muhammad-082d4d.jpg",
-      "imageY": 20,
-      "source": "https://en.wikipedia.org/wiki/Ibtihaj_Muhammad",
+      "id": "salahuddin",
+      "name": "Salah al-Din",
+      "position": "Sultan & Military Leader",
+      "image": "uploads/salahuddin-225359.jpg",
+      "imageY": 30,
+      "source": "https://en.wikipedia.org/wiki/Saladin",
       "facts": [
-        "American sabre fencer from New Jersey.",
-        "First American woman to compete at the Olympics wearing a hijab, at Rio 2016.",
-        "Won a bronze medal in team sabre, and Mattel made a Barbie doll in her likeness."
+        "Kurdish-born founder of the Ayyubid dynasty, he ruled Egypt and Syria in the 12th century.",
+        "Recaptured Jerusalem from the Crusaders in 1187.",
+        "Respected even by his enemies for his mercy and chivalry."
       ]
     },
     {
-      "id": "ahmed-zewail",
-      "name": "Ahmed Zewail",
-      "position": "Chemist",
-      "image": "uploads/ahmed-zewail-dbceff.jpg",
-      "imageY": 20,
-      "source": "https://en.wikipedia.org/wiki/Ahmed_Zewail",
+      "id": "abu-bakr",
+      "name": "Abu Bakr al-Siddiq",
+      "position": "First Caliph of Islam",
+      "image": "uploads/namecard-abu-bakr.svg",
+      "imageY": 40,
+      "source": "https://en.wikipedia.org/wiki/Abu_Bakr",
       "facts": [
-        "Egyptian-American scientist and professor at Caltech.",
-        "Won the 1999 Nobel Prize in Chemistry for watching chemical reactions with ultrafast lasers.",
-        "Is often called the father of femtochemistry."
-      ]
-    },
-    {
-      "id": "muhammad-ali",
-      "name": "Muhammad Ali",
-      "position": "Professional Boxer",
-      "image": "uploads/muhammad-ali-3c3526.jpg",
-      "imageY": 20,
-      "source": "https://en.wikipedia.org/wiki/Muhammad_Ali",
-      "facts": [
-        "American boxer nicknamed “The Greatest”.",
-        "Won Olympic gold in 1960 and became world heavyweight champion three times.",
-        "Refused to fight in the Vietnam War because of his faith and lost his title for it."
-      ]
-    },
-    {
-      "id": "nadiya-hussain",
-      "name": "Nadiya Hussain",
-      "position": "Baker & TV Chef",
-      "image": "uploads/nadiya-hussain-61fdf4.jpg",
-      "imageY": 20,
-      "source": "https://en.wikipedia.org/wiki/Nadiya_Hussain",
-      "facts": [
-        "British baker who won The Great British Bake Off in 2015.",
-        "Baked the cake for Queen Elizabeth II’s 90th birthday.",
-        "Has hosted her own BBC cooking shows and written cookbooks and children’s books."
-      ]
-    },
-    {
-      "id": "ibn-battuta",
-      "name": "Ibn Battuta",
-      "position": "Explorer & Travel Writer",
-      "image": "uploads/ibn-battuta-b5056c.jpg",
-      "imageY": 20,
-      "source": "https://en.wikipedia.org/wiki/Ibn_Battuta",
-      "facts": [
-        "14th-century Moroccan explorer from Tangier.",
-        "Travelled for about 30 years across Africa, the Middle East and Asia, further than Marco Polo.",
-        "His travel book, the Rihla, describes the places he visited."
-      ]
-    },
-    {
-      "id": "hamdi-ulukaya",
-      "name": "Hamdi Ulukaya",
-      "position": "Entrepreneur",
-      "image": "uploads/hamdi-ulukaya-123506.jpg",
-      "imageY": 20,
-      "source": "https://en.wikipedia.org/wiki/Hamdi_Ulukaya",
-      "facts": [
-        "Born in Turkey, he moved to the United States to study English.",
-        "Founded Chobani, which became the best-selling Greek yogurt brand in the US.",
-        "Known for hiring refugees and giving his employees shares in the company."
+        "The closest companion of the Prophet Muhammad ﷺ and the first adult man to accept Islam.",
+        "Travelled with the Prophet on the Hijrah from Makkah to Madinah.",
+        "Became the first caliph after the Prophet passed away in 632 and led the Muslim community for about two years."
       ]
     },
     {
@@ -201,101 +58,244 @@
       ]
     },
     {
-      "id": "anousheh-ansari",
-      "name": "Anousheh Ansari",
-      "position": "Engineer & Space Explorer",
-      "image": "uploads/anousheh-ansari-5e0f8c.jpg",
-      "imageY": 20,
-      "source": "https://en.wikipedia.org/wiki/Anousheh_Ansari",
+      "id": "khadijah",
+      "name": "Khadijah bint Khuwaylid",
+      "position": "Merchant & Mother of the Believers",
+      "image": "uploads/namecard-khadijah.svg",
+      "imageY": 40,
+      "source": "https://en.wikipedia.org/wiki/Khadija_bint_Khuwaylid",
       "facts": [
-        "Iranian-American engineer who co-founded a telecommunications company.",
-        "In 2006 she flew to the International Space Station, the first Muslim woman in space.",
-        "Her family sponsored the Ansari X Prize for private spaceflight."
+        "A successful merchant in Makkah who hired Muhammad ﷺ to lead her trade caravans.",
+        "Married the Prophet and was the first person to accept Islam.",
+        "Supported him with her wealth and comfort through the hardest early years of his mission."
       ]
     },
     {
-      "id": "abdul-sattar-edhi",
-      "name": "Abdul Sattar Edhi",
-      "position": "Humanitarian",
-      "image": "uploads/abdul-sattar-edhi-dd69cc.jpg",
-      "imageY": 20,
-      "source": "https://en.wikipedia.org/wiki/Abdul_Sattar_Edhi",
+      "id": "khawla",
+      "name": "Khawla bint al-Azwar",
+      "position": "Warrior",
+      "image": "uploads/namecard-khawla.svg",
+      "imageY": 40,
+      "source": "https://en.wikipedia.org/wiki/Khawla_bint_al-Azwar",
       "facts": [
-        "Pakistani humanitarian (1928–2016).",
-        "Founded the Edhi Foundation, which runs one of the world’s largest volunteer ambulance services.",
-        "Lived very simply and spent his life helping the poor, orphans and the sick."
+        "A 7th-century Arab Muslim warrior.",
+        "Fought in the early Muslim campaigns in the Levant, including the Battle of Yarmouk in 636.",
+        "Remembered for riding into battle to rescue her brother Dirar."
       ]
     },
     {
-      "id": "riz-ahmed",
-      "name": "Riz Ahmed",
-      "position": "Actor & Rapper",
-      "image": "uploads/riz-ahmed-87b874.jpg",
+      "id": "abdul-el-sayed",
+      "name": "Abdul El-Sayed",
+      "position": "Doctor & Public Health Leader",
+      "image": "uploads/abdul-el-sayed-515d41.jpg",
       "imageY": 20,
-      "source": "https://en.wikipedia.org/wiki/Riz_Ahmed",
+      "source": "https://en.wikipedia.org/wiki/Abdul_El-Sayed",
       "facts": [
-        "British actor and rapper with Pakistani heritage.",
-        "In 2017 he became the first Muslim to win an Emmy for a lead acting role.",
-        "Was nominated for the Best Actor Oscar for Sound of Metal."
+        "American doctor and epidemiologist from Michigan who taught at Columbia University.",
+        "Led Detroit’s health department from 2015, rebuilding it after the city’s bankruptcy.",
+        "Ran for governor of Michigan in 2018."
+      ]
+    },
+    {
+      "id": "greta",
+      "name": "Greta Thunberg",
+      "position": "Climate Activist",
+      "image": "uploads/greta-25a787.jpg",
+      "imageY": 20,
+      "source": "https://en.wikipedia.org/wiki/Greta_Thunberg",
+      "facts": [
+        "Swedish activist who started skipping school on Fridays in 2018 to protest outside parliament for climate action.",
+        "Her “school strike for climate” grew into the worldwide Fridays for Future movement.",
+        "Spoke to world leaders at the UN Climate Action Summit in 2019."
+      ]
+    },
+    {
+      "id": "imam-bukhari",
+      "name": "Imam al-Bukhari",
+      "position": "Hadith Scholar",
+      "image": "uploads/namecard-imam-bukhari.svg",
+      "imageY": 40,
+      "source": "https://en.wikipedia.org/wiki/Muhammad_al-Bukhari",
+      "facts": [
+        "A 9th-century scholar born in 810 in Bukhara, in today’s Uzbekistan.",
+        "Spent years travelling to collect and check the sayings of the Prophet Muhammad ﷺ.",
+        "His collection, Sahih al-Bukhari, is regarded by Sunni Muslims as the most authentic book after the Quran."
+      ]
+    },
+    {
+      "id": "ilhan-omar",
+      "name": "Ilhan Omar",
+      "position": "US Congresswoman",
+      "image": "uploads/ilhan-omar-9d319b.jpg",
+      "imageY": 20,
+      "source": "https://en.wikipedia.org/wiki/Ilhan_Omar",
+      "facts": [
+        "Came to the United States as a refugee from Somalia when she was a child.",
+        "In 2019 she became one of the first two Muslim women elected to the US Congress, representing Minnesota.",
+        "The first member of Congress to wear a hijab on the House floor."
+      ]
+    },
+    {
+      "id": "abraham-lincoln",
+      "name": "Abraham Lincoln",
+      "position": "16th US President",
+      "image": "uploads/abraham-lincoln-9612a4.jpg",
+      "imageY": 15,
+      "source": "https://en.wikipedia.org/wiki/Abraham_Lincoln",
+      "facts": [
+        "Grew up on the American frontier and was mostly self-taught.",
+        "Led the United States through the Civil War.",
+        "Issued the Emancipation Proclamation in 1863 and pushed for the amendment that abolished slavery."
+      ]
+    },
+    {
+      "id": "gandhi",
+      "name": "Mahatma Gandhi",
+      "position": "Independence Leader",
+      "image": "uploads/gandhi-a851db.jpg",
+      "imageY": 20,
+      "source": "https://en.wikipedia.org/wiki/Mahatma_Gandhi",
+      "facts": [
+        "Indian lawyer who led India’s struggle for independence from British rule.",
+        "Championed non-violent resistance, such as the 1930 Salt March.",
+        "Inspired civil rights movements around the world, including Martin Luther King Jr."
+      ]
+    },
+    {
+      "id": "mlk",
+      "name": "Martin Luther King Jr.",
+      "position": "Civil Rights Leader",
+      "image": "uploads/mlk-4caa00.jpg",
+      "imageY": 20,
+      "source": "https://en.wikipedia.org/wiki/Martin_Luther_King_Jr.",
+      "facts": [
+        "American Baptist minister who led the civil rights movement in the 1950s and 1960s.",
+        "Gave the “I Have a Dream” speech at the 1963 March on Washington.",
+        "Won the Nobel Peace Prize in 1964."
+      ]
+    },
+    {
+      "id": "malcolm-x",
+      "name": "Malcolm X",
+      "position": "Human Rights Activist",
+      "image": "uploads/malcolm-x-b43943.jpg",
+      "imageY": 20,
+      "source": "https://en.wikipedia.org/wiki/Malcolm_X",
+      "facts": [
+        "American minister and one of the most influential voices of the civil rights era.",
+        "After performing Hajj in 1964, he embraced Sunni Islam and took the name el-Hajj Malik el-Shabazz.",
+        "His life story, The Autobiography of Malcolm X, is still widely read."
+      ]
+    },
+    {
+      "id": "amira-elghawaby",
+      "name": "Amira Elghawaby",
+      "position": "Human Rights Advocate",
+      "image": "uploads/amira-elghawaby-55c84e.jpg",
+      "imageY": 20,
+      "source": "https://en.wikipedia.org/wiki/Amira_Elghawaby",
+      "facts": [
+        "Canadian journalist and human rights advocate.",
+        "In 2023 she became Canada’s first Special Representative on Combatting Islamophobia.",
+        "Previously worked with the National Council of Canadian Muslims."
+      ]
+    },
+    {
+      "id": "nelson-mandela",
+      "name": "Nelson Mandela",
+      "position": "Anti-Apartheid Leader",
+      "image": "uploads/nelson-mandela-98def5.jpg",
+      "imageY": 20,
+      "source": "https://en.wikipedia.org/wiki/Nelson_Mandela",
+      "facts": [
+        "South African leader who fought against apartheid and spent 27 years in prison.",
+        "Became South Africa’s first Black president in 1994.",
+        "Shared the Nobel Peace Prize in 1993."
+      ]
+    },
+    {
+      "id": "prophet-muhammad",
+      "name": "Prophet Muhammad ﷺ",
+      "position": "Final Messenger of God",
+      "image": "uploads/namecard-prophet-muhammad.svg",
+      "imageY": 40,
+      "source": "https://en.wikipedia.org/wiki/Muhammad",
+      "facts": [
+        "Born in Makkah around the year 570.",
+        "Received the first revelation of the Quran at age 40 in the cave of Hira.",
+        "Known even before prophethood as al-Amin, “the trustworthy”."
+      ]
+    },
+    {
+      "id": "prophet-musa",
+      "name": "Prophet Musa (AS)",
+      "position": "Prophet & Messenger",
+      "image": "uploads/namecard-prophet-musa.svg",
+      "imageY": 40,
+      "source": "https://en.wikipedia.org/wiki/Moses_in_Islam",
+      "facts": [
+        "The prophet mentioned by name most often in the Quran.",
+        "Raised in Pharaoh’s palace in Egypt, he later led the Children of Israel out of slavery.",
+        "Received the Tawrah (Torah) and spoke directly with God."
       ]
     }
   ],
   "questions": [
     {
       "id": "q1",
-      "text": "Did they go to university?"
+      "text": "Is your person a prophet?"
     },
     {
       "id": "q2",
-      "text": "Do they work in the medical field?"
+      "text": "Did they live during the time of the Prophet Muhammad ﷺ?"
     },
     {
       "id": "q3",
-      "text": "Did they start their career in a different industry?"
-    },
-    {
-      "id": "q4",
-      "text": "Do they work with numbers?"
-    },
-    {
-      "id": "q5",
-      "text": "Are they an entrepreneur?"
-    },
-    {
-      "id": "q6",
-      "text": "Did they become successful before the age of 30?"
-    },
-    {
-      "id": "q7",
       "text": "Are they alive today?"
     },
     {
-      "id": "q8",
-      "text": "Did they live before the year 1900?"
+      "id": "q4",
+      "text": "Did they live before the year 1000?"
     },
     {
-      "id": "q9",
+      "id": "q5",
       "text": "Is your person a woman?"
     },
     {
+      "id": "q6",
+      "text": "Are they from North America?"
+    },
+    {
+      "id": "q7",
+      "text": "Have they led a country or a government?"
+    },
+    {
+      "id": "q8",
+      "text": "Are they known for fighting injustice?"
+    },
+    {
+      "id": "q9",
+      "text": "Did they win a Nobel Prize?"
+    },
+    {
       "id": "q10",
-      "text": "Are they known for sports?"
+      "text": "Are they a scholar or religious leader?"
     },
     {
       "id": "q11",
-      "text": "Have they appeared on TV or in films?"
+      "text": "Did they go to university?"
     },
     {
       "id": "q12",
-      "text": "Did they win a major award or prize?"
+      "text": "Do they work in the medical field?"
     },
     {
       "id": "q13",
-      "text": "Were they born in the Middle East?"
+      "text": "Were they ever in prison?"
     },
     {
       "id": "q14",
-      "text": "Have they led a government or held public office?"
+      "text": "Are they known for a famous speech?"
     }
   ]
 }

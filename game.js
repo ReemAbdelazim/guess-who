@@ -32,6 +32,9 @@
   let code = null, seat = null, game = null, gameRef = null;
   let pickId = null, guessing = false, concealed = false, ticker = null, upShownFor = null, needSecret = false;
   let typeOpen = false; // typing a question is optional; asking out loud is the default
+  let nextAt = {};       // round key -> when the next round starts automatically
+  let wasOver = false;
+  const NEXT_ROUND_MS = 6000;
 
   const person = id => data.people.find(p => p.id === id);
   const other = s => (s === 'p1' ? 'p2' : 'p1');
@@ -68,7 +71,7 @@
     const q = new URLSearchParams(location.search);
     const c = (q.get('game') || '').toUpperCase();
     const p = q.get('p') === '1' ? 'p1' : q.get('p') === '2' ? 'p2' : null;
-    seat = p; guessing = false; pickId = null; needSecret = false;
+    seat = p; guessing = false; pickId = null; needSecret = false; wasOver = false; nextAt = {};
     if (c !== code) subscribe(/^[A-HJ-NP-Z2-9]{4}$/.test(c) ? c : null);
     else render();
   }
@@ -80,10 +83,8 @@
     gameRef = db.ref('games/' + code);
     gameRef.on('value', snap => {
       const prevRound = game && game.round;
-      const prevTotal = game && R().timer && R().timer.total;
       game = snap.val();
-      if (prevTotal && R().timer && R().timer.total > prevTotal) { upShownFor = null; closeModal('#upModal'); }
-      if (prevRound && game && game.round !== prevRound) { pickId = null; guessing = false; needSecret = false; closeModals(); }
+      if (prevRound && game && game.round !== prevRound) { pickId = null; guessing = false; needSecret = false; typeOpen = false; closeModals(); }
       render();
     }, err => { $('#homeErr').textContent = 'Could not reach the game server. ' + err.message; });
   }
@@ -212,18 +213,35 @@
   }
 
   // ---------- game state helpers ----------
+  // One clock for the whole match. Rounds keep coming until it runs out.
   function timerState() {
-    const r = R(), total = (Number(game.mins) || 5) * 60000;
-    return r.timer || { total, left: total, endsAt: null };
+    const total = (Number(game.mins) || 5) * 60000;
+    return game.timer || { total, left: total, endsAt: null };
   }
   const remaining = () => { const t = timerState(); return t.endsAt ? Math.max(0, t.endsAt - now()) : t.left; };
   const timerStarted = () => { const t = timerState(); return !!t.endsAt || t.left < t.total; };
   const timeUp = () => timerStarted() && remaining() <= 0;
+  const matchOver = () => !!game && timeUp();
+  // pick → play → result. The round ends as soon as either player locks in a guess.
   function phase() {
-    const r = R(), lk = r.locked || {}, rv = r.reveal || {};
+    const r = R(), lk = r.locked || {}, g = r.guess || {};
     if (!(lk.p1 && lk.p2)) return 'pick';
-    if (rv.p1 && rv.p2) return 'result';
+    if (g.p1 || g.p2) return 'result';
     return 'play';
+  }
+  // A right guess wins the round for the guesser; a wrong guess gives it to the other player.
+  function roundResult(r) {
+    const g = r.guess || {}, rv = r.reveal || {}, pts = { p1: 0, p2: 0 }, rows = [];
+    let pending = false;
+    ['p1', 'p2'].forEach(s => {
+      if (!g[s]) return;
+      const target = rv[other(s)];
+      if (!target) { pending = true; return; }
+      const ok = g[s] === target;
+      pts[ok ? s : other(s)]++;
+      rows.push({ s, ok, guess: g[s], actual: target });
+    });
+    return { any: !!(g.p1 || g.p2), pending, pts, rows };
   }
   function qaList() {
     const qa = R().qa || {};
@@ -231,12 +249,10 @@
   }
   function winsFor(s) {
     let n = 0;
-    Object.values((game && game.rounds) || {}).forEach(r => {
-      const g = r.guess || {}, rv = r.reveal || {};
-      if (rv.p1 && rv.p2 && g[s] && g[s] === rv[other(s)]) n++;
-    });
+    Object.values((game && game.rounds) || {}).forEach(r => { const res = roundResult(r); if (res.any && !res.pending) n += res.pts[s]; });
     return n;
   }
+  const firstAsker = () => ((game.round || 1) % 2 ? 'p1' : 'p2'); // players take turns starting rounds
 
   // ---------- game screen ----------
   function slot(p, extra) {
@@ -246,7 +262,7 @@
   }
 
   function renderPlayers() {
-    const ph = phase(), turn = R().turn || 'p1';
+    const ph = phase(), turn = R().turn || firstAsker();
     $('#players').innerHTML = ['p1', 'p2'].map(s => {
       const pl = (game.players || {})[s];
       const me = s === seat;
@@ -295,12 +311,13 @@
         return `<div><span>${esc(name)}</span>${state}</div>`;
       };
       $('#pickStatus').innerHTML = st('You', seat) + st(pname(opp), opp);
-      $('#mins').textContent = (game.mins || 5) + ' min';
+      renderPickClock();
       $('#pickInvite').classList.toggle('hidden', !!oppPl);
       $('#pickUrl').textContent = linkFor(code);
       $('#lockPick').disabled = locked || !pickId;
       $('#lockPick').textContent = locked ? (oppPl ? `Waiting for ${pname(opp)}…` : 'Waiting for the other player…') : 'Lock in my person';
       closeModal('#resultModal');
+      if (matchOver()) showFinal(); else closeModal('#finalModal');
       return;
     }
 
@@ -309,14 +326,14 @@
     $('#mySlot').classList.toggle('concealed', concealed);
     renderTimer();
 
-    const turn = r.turn || 'p1', list = qaList();
+    const turn = r.turn || firstAsker(), list = qaList();
     const incoming = list.find(q => q.from === opp && !q.ans);
     const mine = list.find(q => q.from === seat && !q.ans);
     const myGuess = r.guess && r.guess[seat], oppGuess = r.guess && r.guess[opp];
-    const up = timeUp();
+    const up = timeUp() || ph === 'result';
 
     $('#turn').className = 'turn' + (turn === seat && !myGuess && !up ? ' mine' : '');
-    $('#turn').textContent = up ? 'Time’s up' : myGuess && oppGuess ? 'Both players have guessed' : turn === seat ? 'Your turn to ask' : `${pname(opp)}’s turn to ask`;
+    $('#turn').textContent = ph === 'result' ? 'Round over' : up ? 'Time’s up' : turn === seat ? 'Your turn to ask' : `${pname(opp)}’s turn to ask`;
 
     let ask = '';
     if (incoming) {
@@ -353,25 +370,25 @@
     $('#log').scrollTop = $('#log').scrollHeight;
 
     const g = $('#guessBtn');
-    g.disabled = !!myGuess || ph === 'result';
-    g.textContent = myGuess ? `You guessed ${person(myGuess) ? person(myGuess).name : ''}` : guessing ? 'Cancel' : 'Lock in my guess';
+    g.disabled = ph !== 'play' || timeUp();
+    g.textContent = guessing ? 'Cancel' : 'Lock in my guess';
     g.className = 'btn ' + (guessing ? 'btn-ghost' : 'btn-primary');
     $('#hint').textContent = needSecret ? 'Click your own secret person so it can be revealed.'
       : guessing ? `Click the person you think ${pname(opp)} chose.`
-      : myGuess ? (oppGuess ? 'Revealing…' : `Waiting for ${pname(opp)} to guess.`)
-      : up ? 'Time is up. Lock in your guess.'
+      : ph === 'result' ? 'Revealing…'
+      : timeUp() ? 'Time is up.'
       : !timerStarted() ? 'Start the clock when you’re both ready.'
       : !timerState().endsAt ? 'The host has paused the timer.'
-      : 'Click a card to rule that person out.';
+      : 'Click a card to rule that person out. Locking in a guess ends the round.';
 
-    if (up && !myGuess && upShownFor !== roundKey()) { upShownFor = roundKey(); guessing = false; openModal('#upModal'); }
-
-    // Both guessed: reveal my secret (it never left this browser until now).
-    if (myGuess && oppGuess && !(r.reveal && r.reveal[seat])) {
+    // Someone guessed: both players reveal their secret person (it stays in this browser until now).
+    if (ph === 'result' && !(r.reveal && r.reveal[seat])) {
       if (secret) rref(`reveal/${seat}`).set(secret);
       else needSecret = true;
     }
-    if (ph === 'result') showResult(); else closeModal('#resultModal');
+    if (matchOver()) showFinal();
+    else if (ph === 'result') showResult();
+    else { closeModal('#resultModal'); closeModal('#finalModal'); }
   }
 
   function renderTimer() {
@@ -392,34 +409,76 @@
         : key === 'ready' ? '<button class="btn btn-primary" id="startClock">Start clock</button>' : '';
     }
   }
+  function renderPickClock() {
+    if (!game || !seat) return;
+    const started = timerStarted();
+    $('#minsLbl').textContent = started ? 'Time left in this game' : 'Game time';
+    $('#mins').textContent = started ? fmt(remaining()) : (game.mins || 5) + ' min';
+  }
+
   ticker = setInterval(() => {
-    if (!game || !seat || phase() !== 'play') return;
-    const wasUp = $('#timer').classList.contains('done');
-    renderTimer();
-    if (!wasUp && timeUp()) renderGame();
+    if (!game || !seat) return;
+    const ph = phase();
+    if (ph === 'pick') renderPickClock(); else renderTimer();
+    if (ph === 'result') tickNextRound();
+    const over = matchOver();
+    if (over !== wasOver) { wasOver = over; renderGame(); }
   }, 250);
 
   // ---------- result ----------
+  function personMini(id, label) {
+    const p = person(id);
+    return `<div class="mini">${p ? `<img src="${esc(p.image)}" alt="" style="object-position:50% ${Number(p.imageY ?? 20)}%">` : ''}<div><div class="k">${label}</div><div class="v">${esc(p ? p.name : '…')}</div></div></div>`;
+  }
+  const who = s => (s === seat ? 'You' : esc(pname(s)));
+
   function showResult() {
-    const r = R(), g = r.guess || {}, rv = r.reveal || {};
-    const ok = s => g[s] && g[s] === rv[other(s)];
-    const me = seat, opp = other(seat);
-    $('#resEyebrow').textContent = `Round ${game.round || 1} · Reveal`;
-    $('#resTitle').textContent = ok(me) && ok(opp) ? 'You both got it! You both win.'
-      : ok(me) ? 'You got it! You win this round.'
-      : ok(opp) ? `${pname(opp)} got it and wins this round.`
-      : 'Nobody guessed right this time.';
-    const card = s => {
-      const guess = person(g[s]), actual = person(rv[other(s)]);
-      return `<div class="who ${ok(s) ? 'win' : ''}">
-        <div class="head"><b>${s === me ? 'You' : esc(pname(s))}</b><span class="pill ${ok(s) ? 'ok' : ''}">${ok(s) ? 'Correct' : 'Wrong'}</span></div>
-        <div class="mini">${guess ? `<img src="${esc(guess.image)}" alt="">` : ''}<div><div class="k">Guessed</div><div class="v">${esc(guess ? guess.name : '—')}</div></div></div>
-        <div class="mini">${actual ? `<img src="${esc(actual.image)}" alt="">` : ''}<div><div class="k">${s === me ? esc(pname(opp)) + ' chose' : 'You chose'}</div><div class="v">${esc(actual ? actual.name : '—')}</div></div></div>
-      </div>`;
-    };
-    $('#resDuo').innerHTML = card(me) + card(opp);
-    $('#resMsg').textContent = `Score so far: You ${winsFor(me)} · ${pname(opp)} ${winsFor(opp)}`;
+    const r = R(), res = roundResult(r), rv = r.reveal || {}, me = seat, opp = other(seat), n = game.round || 1;
+    $('#resEyebrow').textContent = `Round ${n} · Result`;
+    $('#again').classList.add('hidden');
+    if (res.pending) {
+      $('#resTitle').textContent = 'Revealing…';
+      $('#resDuo').innerHTML = '';
+      $('#resMsg').textContent = needSecret ? 'Click your own secret person on the board so it can be revealed.' : 'Waiting for both secret people to be revealed.';
+    } else {
+      const winners = ['p1', 'p2'].filter(s => res.pts[s] > 0);
+      $('#resTitle').textContent = winners.length === 2 ? 'You both win this round!'
+        : winners[0] === me ? 'You win this round!' : `${pname(winners[0])} wins this round`;
+      const lines = res.rows.map(x => `${x.s === me ? 'You' : pname(x.s)} guessed ${person(x.guess) ? person(x.guess).name : ''}: ${x.ok ? 'correct' : 'wrong'}.`).join(' ');
+      $('#resDuo').innerHTML = ['p1', 'p2'].map(s => `<div class="who ${res.pts[s] ? 'win' : ''}">
+          <div class="head"><b>${who(s)}</b>${res.pts[s] ? '<span class="pill ok">Wins round</span>' : ''}</div>
+          ${personMini(rv[s], s === me ? 'Your person' : 'Their person')}
+          ${(r.guess || {})[s] ? personMini(r.guess[s], s === me ? 'You guessed' : 'They guessed') : ''}
+        </div>`).join('');
+      if (!nextAt[roundKey()]) nextAt[roundKey()] = Date.now() + NEXT_ROUND_MS;
+      const secs = Math.max(0, Math.ceil((nextAt[roundKey()] - Date.now()) / 1000));
+      $('#resMsg').textContent = `${lines} Score: You ${winsFor(me)} · ${pname(opp)} ${winsFor(opp)}. Round ${n + 1} starts in ${secs}s.`;
+      $('#again').textContent = `Start round ${n + 1} now`;
+      $('#again').classList.remove('hidden');
+    }
     if (!$('#resultModal').classList.contains('show')) openModal('#resultModal');
+  }
+
+  // Count down on the result screen, then move both players to the next round.
+  function tickNextRound() {
+    const at = nextAt[roundKey()];
+    if (!at || matchOver()) return;
+    if (Date.now() >= at) { nextAt[roundKey()] = Infinity; nextRound(); }
+    else if ($('#resultModal').classList.contains('show')) showResult();
+  }
+
+  function showFinal() {
+    const me = seat, opp = other(seat), a = winsFor(me), b = winsFor(opp);
+    $('#finTitle').textContent = a === b ? `It’s a tie, ${a}–${b}` : a > b ? `You win the game, ${a}–${b}!` : `${pname(opp)} wins the game, ${b}–${a}`;
+    const rounds = Object.entries(game.rounds || {}).map(([k, r]) => [Number(k.slice(1)), roundResult(r)])
+      .filter(([, res]) => res.any && !res.pending).sort((x, y) => x[0] - y[0]);
+    $('#finRounds').innerHTML = rounds.length ? rounds.map(([n, res]) => {
+      const w = ['p1', 'p2'].filter(s => res.pts[s]);
+      return `<li><span>Round ${n}</span><b>${w.length === 2 ? 'Both' : w[0] === me ? 'You' : esc(pname(w[0]))}</b></li>`;
+    }).join('') : '<li><span>No rounds finished</span><b>—</b></li>';
+    $('#finMsg').textContent = game.next ? 'Starting a rematch…' : 'Play again with the same two players, or go back to the start.';
+    if (!$('#finalModal').classList.contains('show')) openModal('#finalModal');
+    if (game.next) go({ game: game.next, p: seat === 'p1' ? 1 : 2 });
   }
 
   // ---------- actions ----------
@@ -462,7 +521,7 @@
 
   // Players can only start the clock; pausing and adding time happen in /admin.
   function startTimer() {
-    rref('timer').transaction(cur => {
+    gref('timer').transaction(cur => {
       if (cur) return; // already started (or changed by the host)
       const t = timerState();
       return { total: t.total, left: t.left, endsAt: now() + t.left };
@@ -473,7 +532,7 @@
   function passTurn() {
     const r = R(), opp = other(seat), oppGuess = r.guess && r.guess[opp];
     const k = rref('qa').push().key;
-    rref('').update({ [`qa/${k}`]: { from: seat, spoken: true, ans: 'spoken', at: TS }, turn: oppGuess ? seat : opp });
+    rref('').update({ [`qa/${k}`]: { from: seat, spoken: true, ans: 'spoken', at: TS }, turn: opp });
     if (!timerStarted()) startTimer();
   }
 
@@ -484,23 +543,40 @@
     if (!timerStarted()) startTimer(); // the first question starts the clock
   }
   function answer(qid, ans) {
-    const r = R(), myGuess = r.guess && r.guess[seat];
-    // After answering it's my turn to ask, unless I've already locked in my guess.
-    rref('').update({ [`qa/${qid}/ans`]: ans, turn: myGuess ? other(seat) : seat });
+    // After answering, it's my turn to ask.
+    rref('').update({ [`qa/${qid}/ans`]: ans, turn: seat });
   }
 
+  // Locking in a guess ends the round for both players.
   function lockGuess(id) {
     guessing = false;
-    const r = R(), list = qaList();
-    const updates = { [`guess/${seat}`]: id };
-    // I'm done asking: hand the turn over if it was mine.
-    if ((r.turn || 'p1') === seat && !list.some(q => q.from === seat && !q.ans)) updates.turn = other(seat);
-    rref('').update(updates);
+    if (phase() !== 'play' || timeUp()) return;
+    rref(`guess/${seat}`).set(id);
   }
 
-  function playAgain() {
+  function nextRound() {
     const n = game.round || 1;
     gref('round').transaction(cur => (cur || 1) === n ? n + 1 : cur);
+  }
+
+  // Rematch: a fresh game (and a fresh clock) with the same two players in the same seats.
+  async function rematch() {
+    if (game.next) return go({ game: game.next, p: seat === 'p1' ? 1 : 2 });
+    $('#rematch').disabled = true;
+    try {
+      let c;
+      for (let i = 0; i < 8; i++) {
+        c = Array.from({ length: 4 }, () => CODE_CHARS[Math.floor(Math.random() * CODE_CHARS.length)]).join('');
+        if (!(await db.ref('games/' + c).get()).exists()) break;
+      }
+      await db.ref('games/' + c).update({ created: TS, mins: Number(game.mins) || 5, round: 1 });
+      const pl = game.players || {}, copy = {};
+      ['p1', 'p2'].forEach(s => { if (pl[s]) copy[s] = { name: pl[s].name, client: pl[s].client, online: false }; });
+      await db.ref(`games/${c}/players`).set(copy);
+      const res = await gref('next').transaction(cur => cur || c);
+      const target = res.snapshot.val() || c;
+      go({ game: target, p: seat === 'p1' ? 1 : 2 });
+    } catch (e) { $('#rematch').disabled = false; toast('Could not start a rematch. Try again.'); }
   }
 
   // ---------- modals ----------
@@ -525,8 +601,8 @@
       if (r.locked && r.locked[seat]) return;
       pickId = pickId === id ? null : id; renderGame(); return;
     }
-    if (ph !== 'play') return;
     if (needSecret) { store.set(secretKey(), id); needSecret = false; rref(`reveal/${seat}`).set(id); return; }
+    if (ph !== 'play') return;
     const out = myOut();
     if (guessing) { if (!out.has(id)) lockGuess(id); return; }
     out.has(id) ? out.delete(id) : out.add(id);
@@ -576,17 +652,18 @@
   });
   $('#tstate').addEventListener('click', e => { if (e.target.id === 'startClock') startTimer(); });
   $('#guessBtn').addEventListener('click', () => { guessing = !guessing; renderGame(); });
-  $('#upGuess').addEventListener('click', () => { closeModal('#upModal'); guessing = true; renderGame(); });
-  $('#again').addEventListener('click', playAgain);
+  $('#again').addEventListener('click', () => { nextAt[roundKey()] = Infinity; nextRound(); });
+  $('#rematch').addEventListener('click', rematch);
+  $('#home').addEventListener('click', () => { closeModals(); go({}); });
   $('#howBtn').addEventListener('click', () => openModal('#howModal'));
   document.querySelectorAll('.modal').forEach(m => m.addEventListener('click', e => {
-    if (m.id === 'resultModal' || m.id === 'upModal') return;
+    if (m.id === 'resultModal' || m.id === 'finalModal') return;
     if (e.target === m || e.target.closest('[data-close]')) m.classList.remove('show');
   }));
   document.addEventListener('keydown', e => {
     if (e.key !== 'Escape') return;
     const open = document.querySelector('.modal.show');
-    if (open && open.id !== 'resultModal' && open.id !== 'upModal') open.classList.remove('show');
+    if (open && open.id !== 'resultModal' && open.id !== 'finalModal') open.classList.remove('show');
     else if (guessing) { guessing = false; renderGame(); }
   });
   new ResizeObserver(() => layout()).observe(board);
