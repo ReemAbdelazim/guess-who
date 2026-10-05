@@ -31,6 +31,7 @@
   let data = null;          // people, questions, settings from data/data.json
   let code = null, seat = null, game = null, gameRef = null;
   let pickId = null, guessing = false, concealed = false, ticker = null, upShownFor = null, needSecret = false;
+  let typeOpen = false; // typing a question is optional; asking out loud is the default
 
   const person = id => data.people.find(p => p.id === id);
   const other = s => (s === 'p1' ? 'p2' : 'p1');
@@ -325,20 +326,28 @@
       ask = '';
     } else if (mine) {
       ask = `<div class="waiting">Waiting for ${esc(pname(opp))} to answer…</div>`;
+    } else if (turn === seat && !typeOpen) {
+      // Default: talk it through with the other team and ask out loud, then pass the turn.
+      ask = `<div class="aloud"><div class="q">Ask ${esc(pname(opp))} a yes-or-no question out loud.</div>
+        <button class="btn btn-primary" id="passTurn">Done, ${esc(pname(opp))}’s turn</button>
+        <button class="linkbtn" id="typeToggle">Or type the question instead</button></div>`;
     } else if (turn === seat) {
       const opts = data.questions.map(q => `<option>${esc(q.text)}</option>`).join('');
       ask = `<form class="askbox" id="askForm">
         <div class="row"><input class="input" id="askText" maxlength="140" placeholder="Type a yes-or-no question" autocomplete="off"><button class="btn btn-primary">Ask</button></div>
-        <select class="input" id="askPick" aria-label="Example questions"><option value="">Or pick an example question…</option>${opts}</select></form>`;
+        <select class="input" id="askPick" aria-label="Example questions"><option value="">Or pick an example question…</option>${opts}</select>
+        <button type="button" class="linkbtn" id="typeToggle">Ask out loud instead</button></form>`;
     } else {
-      ask = `<div class="waiting">${esc(pname(opp))} is thinking of a question…</div>`;
+      ask = `<div class="waiting">${esc(pname(opp))} is asking. Answer them out loud, or on screen if they type it.</div>`;
     }
     // Don't wipe a question the player is halfway through typing.
     const typingAsk = document.activeElement && (document.activeElement.id === 'askText' || document.activeElement.id === 'askPick');
     const keepAsk = typingAsk && $('#askForm') && turn === seat && !incoming && !mine && !up && !myGuess;
     if (!keepAsk) { const draft = $('#askText') ? $('#askText').value : ''; $('#askArea').innerHTML = ask; if ($('#askText')) $('#askText').value = draft; }
 
-    $('#log').innerHTML = list.length ? list.map(q => `<li><span class="who">${q.from === seat ? 'You' : esc(pname(q.from))}</span><span class="txt">${esc(q.text)}</span>
+    $('#log').innerHTML = list.length ? list.map(q => q.spoken
+        ? `<li class="spoken"><span class="who">${q.from === seat ? 'You' : esc(pname(q.from))}</span><span class="txt">Asked out loud</span></li>`
+        : `<li><span class="who">${q.from === seat ? 'You' : esc(pname(q.from))}</span><span class="txt">${esc(q.text)}</span>
         <span class="ans ${q.ans || 'wait'}">${q.ans ? q.ans.toUpperCase() : '…'}</span></li>`).join('')
       : '<li class="empty">No questions yet</li>';
     $('#log').scrollTop = $('#log').scrollHeight;
@@ -351,7 +360,7 @@
       : guessing ? `Click the person you think ${pname(opp)} chose.`
       : myGuess ? (oppGuess ? 'Revealing…' : `Waiting for ${pname(opp)} to guess.`)
       : up ? 'Time is up. Lock in your guess.'
-      : !timerStarted() ? 'The timer starts with the first question.'
+      : !timerStarted() ? 'Start the clock when you’re both ready.'
       : !timerState().endsAt ? 'The host has paused the timer.'
       : 'Click a card to rule that person out.';
 
@@ -374,7 +383,14 @@
     $('#timer').classList.toggle('low', ms > 0 && ms <= 60000);
     $('#timer').classList.toggle('done', timerStarted() && ms <= 0);
     $('#timer').classList.toggle('paused', paused);
-    $('#tstate').textContent = paused ? 'Paused by host' : t.endsAt ? '' : timerStarted() ? 'Time’s up' : 'Starts with the first question';
+    // Only rebuild the state area when it changes, so the Start button stays clickable.
+    const key = paused ? 'paused' : t.endsAt ? 'running' : timerStarted() ? 'up' : 'ready';
+    const ts = $('#tstate');
+    if (ts.dataset.k !== key) {
+      ts.dataset.k = key;
+      ts.innerHTML = key === 'paused' ? 'Paused by host' : key === 'up' ? 'Time’s up'
+        : key === 'ready' ? '<button class="btn btn-primary" id="startClock">Start clock</button>' : '';
+    }
   }
   ticker = setInterval(() => {
     if (!game || !seat || phase() !== 'play') return;
@@ -451,6 +467,14 @@
       const t = timerState();
       return { total: t.total, left: t.left, endsAt: now() + t.left };
     });
+  }
+
+  // Asked out loud: note it in the list and hand the turn over.
+  function passTurn() {
+    const r = R(), opp = other(seat), oppGuess = r.guess && r.guess[opp];
+    const k = rref('qa').push().key;
+    rref('').update({ [`qa/${k}`]: { from: seat, spoken: true, ans: 'spoken', at: TS }, turn: oppGuess ? seat : opp });
+    if (!timerStarted()) startTimer();
   }
 
   function ask(text) {
@@ -545,7 +569,12 @@
   $('#mySlot').addEventListener('click', e => { if (e.target.id === 'toggleHide') { concealed = !concealed; renderGame(); } });
   $('#askArea').addEventListener('submit', e => { e.preventDefault(); const t = $('#askText'); ask(t.value); t.value = ''; t.blur(); });
   $('#askArea').addEventListener('change', e => { if (e.target.id === 'askPick' && e.target.value) { $('#askText').value = e.target.value; e.target.value = ''; $('#askText').focus(); } });
-  $('#askArea').addEventListener('click', e => { const b = e.target.closest('[data-ans]'); if (b) answer(b.dataset.q, b.dataset.ans); });
+  $('#askArea').addEventListener('click', e => {
+    const b = e.target.closest('[data-ans]'); if (b) return answer(b.dataset.q, b.dataset.ans);
+    if (e.target.id === 'passTurn') return passTurn();
+    if (e.target.id === 'typeToggle') { typeOpen = !typeOpen; $('#askArea').innerHTML = ''; renderGame(); if (typeOpen && $('#askText')) $('#askText').focus(); }
+  });
+  $('#tstate').addEventListener('click', e => { if (e.target.id === 'startClock') startTimer(); });
   $('#guessBtn').addEventListener('click', () => { guessing = !guessing; renderGame(); });
   $('#upGuess').addEventListener('click', () => { closeModal('#upModal'); guessing = true; renderGame(); });
   $('#again').addEventListener('click', playAgain);

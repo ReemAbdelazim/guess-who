@@ -12,8 +12,8 @@ Two players compete head-to-head, live, from two different laptops, to work out 
 1. One player opens the game and clicks **Start a new game**. They get a 4-letter game code and a link to send to the other player.
 2. Each player chooses **Player 1** or **Player 2** and types their name. Each player then has their own link (`?game=CODE&p=1` or `&p=2`). You can change your name at the top of the screen at any time.
 3. Each player secretly picks a person from the board and locks them in. Click the **i** on a card to learn about someone.
-4. When both are locked in, the round starts. The timer starts with the first question, and both screens show the same clock. Only the host can pause it or add time, from the admin page.
-5. Players take turns. You type a yes-or-no question (or pick an example). It appears on the other player's screen, they tap **Yes** or **No**, and then it's their turn. There's no limit on questions.
+4. When both are locked in, either player presses **Start clock**. Passing the first turn or typing the first question also starts it. Both screens show the same clock. Only the host can pause it or add time, from the admin page.
+5. Players take turns. By default you talk it over and ask your yes-or-no question out loud, then press **Done** to pass the turn. Typing is optional: type a question (or pick an example) and it appears on the other player's screen with **Yes** / **No** buttons. There's no limit on questions.
 6. Click a card to rule that person out. Click it again to bring them back.
 7. When you're sure, or when time runs out, lock in your guess.
 8. Once both players have guessed, both secret people are revealed on both screens. If both guessed right, both win. Click **Play another round** to keep score across rounds.

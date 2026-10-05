@@ -156,6 +156,12 @@
   #log li .ans.no { border: 1px solid rgba(255,255,255,.5); }
   #log li .ans.wait { color: var(--muted); border: 1px dashed var(--line-strong); }
   #log .empty { justify-content: center; color: var(--muted); font-weight: 600; }
+  #log li.spoken .txt { font-style: italic; color: var(--muted); }
+  .aloud { border: 1px solid var(--green); background: rgba(79,176,109,.12); border-radius: 12px; padding: 12px; display: grid; gap: 8px; justify-items: center; text-align: center; }
+  .aloud .q { font-size: 14px; font-weight: 700; line-height: 1.35; }
+  .aloud .btn { width: 100%; }
+  .askbox .linkbtn { justify-self: center; }
+  .timer .tstate .btn { padding: 7px 12px; font-size: 10.5px; }
 
   .actions { display: grid; gap: 8px; margin-top: auto; }
   .actions .btn { width: 100%; padding: 12px; }
@@ -325,8 +331,8 @@
         <li>One player clicks <b>Start a new game</b> and sends the link (or the code) to the other player.</li>
         <li>Each player chooses <b>Player 1 or Player 2</b> and types their name. Each player now has their own link.</li>
         <li>Each player <b>secretly picks a person</b> from the board and locks them in. Click the <b>i</b> on a card to learn about someone.</li>
-        <li>When both are locked in, the timer starts with the first question. You have <b id="howMins">5 minutes</b> in total. Only the host can pause it or add time.</li>
-        <li><b>Take turns</b> asking one yes-or-no question. The other player answers Yes or No on their laptop, then it’s their turn. There’s no limit on questions.</li>
+        <li>When both are locked in, press <b>Start clock</b>. You have <b id="howMins">5 minutes</b> in total. Only the host can pause it or add time.</li>
+        <li><b>Take turns</b> asking one yes-or-no question. Talk it over and ask out loud, then press <b>Done</b> to pass the turn. You can also type the question instead, and the other player answers Yes or No on their laptop. There’s no limit on questions.</li>
         <li>Click a card to <b>rule that person out</b>. Click it again to bring them back.</li>
         <li>When you’re sure, or when time runs out, <b>lock in your guess</b>.</li>
         <li>Once both players have guessed, both secret people are revealed. If you both guessed right, <b>you both win</b>.</li>
